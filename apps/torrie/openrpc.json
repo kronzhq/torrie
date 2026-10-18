@@ -1,0 +1,113 @@
+{
+  "openrpc": "1.3.2",
+  "info": {
+    "title": "Torrie",
+    "version": "1.0.0",
+    "description": "Torrie's remote control: JSON-RPC 2.0 over HTTP POST to http://127.0.0.1:9091/torrie/rpc (Settings → Network → Remote control). Send Content-Type: application/json. Torrents are named by id or info hash. Magnets still fetching metadata aren't listed yet."
+  },
+  "servers": [{ "name": "Torrie", "url": "http://127.0.0.1:9091/torrie/rpc" }],
+  "methods": [
+    {
+      "name": "torrents.list",
+      "summary": "Torrents, all of them or those in ids",
+      "paramStructure": "by-name",
+      "params": [{ "name": "ids", "schema": { "$ref": "#/components/schemas/Ids" } }],
+      "result": { "name": "torrents", "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Torrent" } } }
+    },
+    {
+      "name": "torrents.add",
+      "summary": "Adds a torrent; it finishes in the background, so a new one has no id yet",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "link", "description": "Magnet link, http(s) URL of a .torrent, or a local .torrent path", "schema": { "type": "string" } },
+        { "name": "torrent", "description": "A .torrent file, base64-encoded (instead of link)", "schema": { "type": "string" } },
+        { "name": "dir", "description": "Absolute folder to download into; the download folder if absent", "schema": { "type": "string" } },
+        { "name": "paused", "schema": { "type": "boolean", "default": false } }
+      ],
+      "result": {
+        "name": "added",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "hash": { "type": "string", "description": "Info hash; empty for an http(s) URL" },
+            "duplicate": { "type": "boolean" },
+            "id": { "type": ["integer", "null"], "description": "Set when it was already there" }
+          }
+        }
+      }
+    },
+    {
+      "name": "torrents.pause",
+      "paramStructure": "by-name",
+      "params": [{ "name": "ids", "required": true, "schema": { "$ref": "#/components/schemas/Ids" } }],
+      "result": { "name": "count", "schema": { "type": "integer" } }
+    },
+    {
+      "name": "torrents.resume",
+      "paramStructure": "by-name",
+      "params": [{ "name": "ids", "required": true, "schema": { "$ref": "#/components/schemas/Ids" } }],
+      "result": { "name": "count", "schema": { "type": "integer" } }
+    },
+    {
+      "name": "torrents.remove",
+      "paramStructure": "by-name",
+      "params": [
+        { "name": "ids", "required": true, "schema": { "$ref": "#/components/schemas/Ids" } },
+        { "name": "delete_files", "schema": { "type": "boolean", "default": false } }
+      ],
+      "result": { "name": "count", "schema": { "type": "integer" } }
+    },
+    {
+      "name": "settings.get",
+      "summary": "Every setting, as in settings.json",
+      "params": [],
+      "result": { "name": "settings", "schema": { "type": "object" } }
+    },
+    {
+      "name": "settings.set",
+      "summary": "Changes the settings given (keys as in settings.get) and returns them all. Plugin, remote control and appearance settings can only be changed in the Settings window.",
+      "paramStructure": "by-name",
+      "params": [],
+      "result": { "name": "settings", "schema": { "type": "object" } }
+    },
+    {
+      "name": "rpc.discover",
+      "summary": "This document",
+      "params": [],
+      "result": { "name": "openrpc", "schema": { "type": "object" } }
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Ids": {
+        "description": "An id, an info hash, or a list of them",
+        "oneOf": [
+          { "type": "integer" },
+          { "type": "string" },
+          { "type": "array", "items": { "type": ["integer", "string"] } }
+        ]
+      },
+      "Torrent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "hash": { "type": "string" },
+          "state": { "enum": ["checking", "downloading", "seeding", "paused", "error"] },
+          "error": { "type": ["string", "null"] },
+          "progress": { "type": "number", "minimum": 0, "maximum": 1 },
+          "size": { "type": "integer", "description": "Bytes" },
+          "downloaded": { "type": "integer", "description": "Bytes" },
+          "uploaded": { "type": "integer", "description": "Bytes, ever" },
+          "ratio": { "type": "number" },
+          "download_rate": { "type": "integer", "description": "Bytes per second" },
+          "upload_rate": { "type": "integer", "description": "Bytes per second" },
+          "eta": { "type": ["integer", "null"], "description": "Seconds; null while nothing is coming in" },
+          "peers": { "type": "integer" },
+          "path": { "type": "string", "description": "The downloaded file or folder" }
+        }
+      }
+    }
+  }
+}

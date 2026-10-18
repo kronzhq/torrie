@@ -1,0 +1,6 @@
+[workspace]
+members = ["apps/*"]
+resolver = "3"
+
+[profile.release]
+lto = "thin"

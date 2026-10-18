@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Torrie</title>
+<link rel="icon" href="/logo.png">
+<style>
+  @font-face { font-family: Figtree; src: url(/fonts/400.ttf); font-weight: 400; font-display: swap; }
+  @font-face { font-family: Figtree; src: url(/fonts/500.ttf); font-weight: 500; font-display: swap; }
+  @font-face { font-family: Figtree; src: url(/fonts/600.ttf); font-weight: 600; font-display: swap; }
+  @font-face { font-family: Figtree; src: url(/fonts/700.ttf); font-weight: 700; font-display: swap; }
+  /* Torrie's default Light and Dark themes (src/theme.rs). */
+  :root {
+    --bg: #fcfcfd; --sidebar: #f1f2f5; --surface: #fff; --hover: #f3f4f7; --elevated: #eceef2;
+    --border: #e6e8ed; --border-strong: #d4d8df; --text: #14161b; --muted: #5b6270; --faint: #99a0ac;
+    --accent: #6a5cff; --down: #2f6bff; --up: #0e9f6a; --checking: #d39400; --paused: #8a909b; --error: #e5484d;
+    --tint: 11%; --lift: 0 1px 2px rgb(0 0 0 / .08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --sidebar: #17191f; --surface: #14161b; --hover: #1a1d24; --elevated: #20232b;
+      --border: #22262e; --border-strong: #30353f; --text: #e8eaef; --muted: #9299a6; --faint: #5c6370;
+      --accent: #8f82ff; --down: #5b9dff; --up: #3ddc97; --checking: #f5b544; --paused: #6b7280; --error: #ff6b6b;
+      --tint: 16%; --lift: 0 1px 2px rgb(0 0 0 / .45);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; display: grid; grid-template-columns: 220px minmax(0, 1fr); background: var(--bg); color: var(--text);
+    font: 13px/1.35 Figtree, system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+  }
+  button, input { font: inherit; color: inherit; }
+  svg { width: var(--s, 15px); height: var(--s, 15px); flex: none; fill: currentColor; }
+
+  /* Sidebar */
+  aside { background: var(--sidebar); display: flex; flex-direction: column; min-height: 0; }
+  .brand { display: flex; align-items: center; gap: 8px; padding: 20px 16px 16px; font-size: 14px; font-weight: 700; }
+  .brand img { width: 24px; height: 24px; }
+  .label { padding: 0 16px 4px; font-size: 10.5px; color: var(--faint); }
+  nav { display: flex; flex-direction: column; gap: 2px; padding: 0 8px; }
+  nav button {
+    display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px; border: 0; border-radius: 6px;
+    background: none; color: var(--muted); cursor: default; text-align: left;
+  }
+  nav button svg { --s: 14px; color: var(--faint); }
+  nav button:hover { background: var(--hover); }
+  nav button.on { background: var(--elevated); box-shadow: var(--lift); color: var(--text); font-weight: 500; }
+  nav button.on svg { color: var(--accent); }
+  nav .name { flex: 1; }
+  nav .count { font-size: 11px; color: var(--faint); font-weight: 400; }
+  .card {
+    margin: auto 12px 12px; padding: 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 70%, transparent); box-shadow: var(--lift);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .card .speeds { display: flex; justify-content: space-between; }
+  .card .note { font-size: 10.5px; color: var(--faint); }
+  .speed { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--faint); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .speed svg { --s: 11px; }
+  .speed.on { color: var(--text); }
+  .speed.down svg { color: var(--down); }
+  .speed.up svg { color: var(--up); }
+
+  /* Main */
+  main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  header { height: 52px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 12px 0 20px; border-bottom: 1px solid var(--border); }
+  header h1 { margin: 0; font-size: 14px; font-weight: 600; }
+  header .count { padding-left: 8px; color: var(--faint); }
+  header .grow { flex: 1; }
+  .icon {
+    display: grid; place-items: center; width: 28px; height: 28px; flex: none; padding: 0; border: 0;
+    border-radius: 6px; background: none; color: var(--muted);
+  }
+  .icon:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
+  .icon:active { background: color-mix(in srgb, var(--text) 14%, transparent); }
+  .icon.on { background: var(--elevated); box-shadow: var(--lift); }
+  #addbar { display: none; gap: 8px; padding: 10px 12px 10px 20px; border-bottom: 1px solid var(--border); }
+  #addbar.on { display: flex; }
+  #addbar input {
+    flex: 1; min-width: 0; height: 28px; padding: 0 10px; border-radius: 6px; outline: none;
+    border: 1px solid var(--border-strong); background: var(--surface);
+  }
+  #addbar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+  .btn {
+    height: 28px; padding: 0 12px 1px; flex: none; border-radius: 6px; border: 1px solid var(--border-strong);
+    background: var(--elevated); box-shadow: var(--lift); font-weight: 500; white-space: nowrap;
+  }
+  .btn:hover { background: var(--border-strong); }
+  .btn.primary {
+    color: #fff; border-color: color-mix(in srgb, var(--accent) 80%, #000);
+    background: linear-gradient(color-mix(in srgb, var(--accent) 88%, #fff), var(--accent));
+  }
+  .btn.primary:hover { background: color-mix(in srgb, var(--accent) 88%, #fff); }
+  .btn.danger { color: #fff; border-color: color-mix(in srgb, var(--error) 80%, #000); background: var(--error); }
+  #banner { display: none; margin: 8px 8px 0; padding: 8px 12px; border-radius: 8px; color: var(--error); background: color-mix(in srgb, var(--error) var(--tint), transparent); }
+  #list { flex: 1; overflow-y: auto; padding: 8px; border: 2px solid transparent; }
+  body.drop #list { border-color: var(--accent); background: color-mix(in srgb, var(--accent) var(--tint), transparent); }
+
+  /* Rows */
+  .row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 4px; border-radius: 8px; }
+  .row:hover { background: var(--hover); }
+  .glyph {
+    width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 8px;
+    color: var(--c); background: color-mix(in srgb, var(--c) var(--tint), transparent);
+  }
+  .glyph svg { --s: 16px; }
+  .checking .glyph svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .line { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .title { flex: 1; min-width: 0; font-weight: 500; }
+  .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slot { width: 84px; display: flex; justify-content: flex-end; }
+  .sub { font-size: 11px; }
+  .sub .state { flex-grow: 1; color: var(--muted); }
+  .error .sub .state { color: var(--error); }
+  .sub .progress { color: var(--faint); }
+  /* Segmented like the app's bar: 2px columns, 1px gaps. */
+  .bar {
+    height: 5px; --mask: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 3px);
+    -webkit-mask: var(--mask); mask: var(--mask);
+    background: linear-gradient(90deg, var(--c) var(--p), var(--elevated) var(--p));
+  }
+  .metadata .bar { background: linear-gradient(90deg, var(--elevated) 35%, color-mix(in srgb, var(--c) 80%, transparent) 35% 65%, var(--elevated) 65%) 0 / 200% 100%; animation: slide 1.6s ease-in-out infinite alternate; }
+  @keyframes slide { from { background-position: 100% 0; } to { background-position: 0 0; } }
+  .actions { display: flex; justify-content: flex-end; width: 84px; flex: none; }
+
+  /* Empty state */
+  .empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; }
+  .empty .badge { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; color: var(--accent); background: color-mix(in srgb, var(--accent) var(--tint), transparent); }
+  .empty .badge svg { --s: 28px; }
+  .empty h2 { margin: 0; font-size: 15px; font-weight: 600; }
+  .empty p { margin: 0; color: var(--muted); }
+  .empty .buttons { display: flex; gap: 8px; padding-top: 8px; }
+
+  dialog {
+    width: min(340px, calc(100vw - 32px)); padding: 20px; border-radius: 12px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text); box-shadow: 0 12px 32px rgb(0 0 0 / .2);
+  }
+  dialog::backdrop { background: rgb(0 0 0 / .35); }
+  dialog h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+  dialog p { margin: 0 0 16px; color: var(--muted); overflow-wrap: anywhere; }
+  dialog form { display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* Phones: the sidebar becomes a top bar with sideways filters. */
+  @media (max-width: 700px) {
+    body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    aside { flex-direction: row; flex-wrap: wrap; align-items: center; padding-bottom: 8px; }
+    .brand { flex: 1; padding: 14px 16px 10px; }
+    .label { display: none; }
+    .card { order: 1; margin: 0 16px 0 0; padding: 0; border: 0; background: none; box-shadow: none; }
+    .card .speeds { gap: 12px; }
+    .card .note { display: none; }
+    nav { order: 2; width: 100%; min-width: 0; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
+    nav button { flex: none; }
+    header { padding-left: 16px; }
+    .row { gap: 10px; padding: 10px 8px; }
+    .slot { display: none; }
+    .sub { flex-wrap: wrap; row-gap: 2px; }
+    .sub > * { white-space: normal; }
+    .actions { width: auto; }
+  }
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand"><img src="/logo.png" alt="">Torrie</div>
+  <div class="label">LIBRARY</div>
+  <nav id="filters"></nav>
+  <div class="card">
+    <div class="speeds" id="totals"></div>
+    <div class="note" id="note"></div>
+  </div>
+</aside>
+<main>
+  <header>
+    <h1 id="title">All Transfers</h1><span class="count" id="count"></span>
+    <span class="grow"></span>
+    <label class="icon" title="Open Torrent…" aria-label="Open Torrent…" data-icon="plus">
+      <input type="file" id="files" accept=".torrent,application/x-bittorrent" multiple hidden>
+    </label>
+    <button class="icon" id="magnet" title="Add Magnet Link" aria-label="Add Magnet Link" data-icon="magnet"></button>
+  </header>
+  <form id="addbar">
+    <input id="link" placeholder="Magnet link or torrent URL" autocomplete="off" aria-label="Magnet link or torrent URL">
+    <button class="btn primary">Add</button>
+  </form>
+  <div id="banner"></div>
+  <div id="list"></div>
+</main>
+<dialog id="confirm">
+  <h3>Remove and delete data?</h3>
+  <p id="confirm-text"></p>
+  <form method="dialog">
+    <button class="btn" value="">Cancel</button>
+    <button class="btn danger" value="delete">Delete</button>
+  </form>
+</dialog>
+<script>
+// Phosphor icons, as bundled in src/theme.rs.
+const ICONS = {"play":"<path d=\"M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z\"/>","pause":"<path d=\"M200,32H160a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm0,176H160V48h40ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Zm0,176H56V48H96Z\"/>","x":"<path d=\"M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z\"/>","trash":"<path d=\"M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z\"/>","plus":"<path d=\"M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z\"/>","magnet":"<path d=\"M207,50.25A87.46,87.46,0,0,0,144.6,24h-.33A87.48,87.48,0,0,0,82,49.81L20.61,112a16,16,0,0,0,.06,22.56l28.66,28.66a15.92,15.92,0,0,0,11.32,4.69h.09a16,16,0,0,0,11.36-4.82L133,100.69a16.08,16.08,0,0,1,22.41-.21,15.6,15.6,0,0,1,4.73,11.19,16.89,16.89,0,0,1-4.85,12L93,183.88a16,16,0,0,0-.17,22.79l28.66,28.66a16.06,16.06,0,0,0,22.52.12L205.81,175C240.26,140.5,240.79,84.56,207,50.25ZM60.65,151.89,32,123.24,55.8,99.12l28.52,28.52ZM132.79,224l-28.68-28.65,24.38-23.57L157,200.32Zm61.76-60.44-26.11,25.54L140,160.68l26.44-25.57.1-.09a33,33,0,0,0,9.57-23.5A31.44,31.44,0,0,0,166.47,89a32.2,32.2,0,0,0-44.9.5L95.49,116.18,67,87.74,93.35,61.09A71.51,71.51,0,0,1,144.27,40h.27a71.55,71.55,0,0,1,51.05,21.48C223.25,89.55,222.75,135.38,194.55,163.58Z\"/>","arrow-down":"<path d=\"M205.66,149.66l-72,72a8,8,0,0,1-11.32,0l-72-72a8,8,0,0,1,11.32-11.32L120,196.69V40a8,8,0,0,1,16,0V196.69l58.34-58.35a8,8,0,0,1,11.32,11.32Z\"/>","arrow-up":"<path d=\"M205.66,117.66a8,8,0,0,1-11.32,0L136,59.31V216a8,8,0,0,1-16,0V59.31L61.66,117.66a8,8,0,0,1-11.32-11.32l72-72a8,8,0,0,1,11.32,0l72,72A8,8,0,0,1,205.66,117.66Z\"/>","layers":"<path d=\"M230.91,172A8,8,0,0,1,228,182.91l-96,56a8,8,0,0,1-8.06,0l-96-56A8,8,0,0,1,36,169.09l92,53.65,92-53.65A8,8,0,0,1,230.91,172ZM220,121.09l-92,53.65L36,121.09A8,8,0,0,0,28,134.91l96,56a8,8,0,0,0,8.06,0l96-56A8,8,0,1,0,220,121.09ZM24,80a8,8,0,0,1,4-6.91l96-56a8,8,0,0,1,8.06,0l96,56a8,8,0,0,1,0,13.82l-96,56a8,8,0,0,1-8.06,0l-96-56A8,8,0,0,1,24,80Zm23.88,0L128,126.74,208.12,80,128,33.26Z\"/>","activity":"<path d=\"M240,128a8,8,0,0,1-8,8H204.94l-37.78,75.58A8,8,0,0,1,160,216h-.4a8,8,0,0,1-7.08-5.14L95.35,60.76,63.28,131.31A8,8,0,0,1,56,136H24a8,8,0,0,1,0-16H50.85L88.72,36.69a8,8,0,0,1,14.76.46l57.51,151,31.85-63.71A8,8,0,0,1,200,120h32A8,8,0,0,1,240,128Z\"/>","alert":"<path d=\"M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z\"/>","refresh":"<path d=\"M224,48V96a8,8,0,0,1-8,8H168a8,8,0,0,1,0-16h28.69L182.06,73.37a79.56,79.56,0,0,0-56.13-23.43h-.45A79.52,79.52,0,0,0,69.59,72.71,8,8,0,0,1,58.41,61.27a96,96,0,0,1,135,.79L208,76.69V48a8,8,0,0,1,16,0ZM186.41,183.29a80,80,0,0,1-112.47-.66L59.31,168H88a8,8,0,0,0,0-16H40a8,8,0,0,0-8,8v48a8,8,0,0,0,16,0V179.31l14.63,14.63A95.43,95.43,0,0,0,130,222.06h.53a95.36,95.36,0,0,0,67.07-27.33,8,8,0,0,0-11.18-11.44Z\"/>"};
+const $ = id => document.getElementById(id);
+const svg = (name, extra = '') => `<svg viewBox="0 0 256 256" ${extra}>${ICONS[name]}</svg>`;
+const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+
+// Same filters, icons and wording as the main window (src/window.rs, src/format.rs).
+const moving = t => t.download_rate >= 1 || t.upload_rate >= 1;
+const FILTERS = [
+  ['All Transfers', 'layers', () => true],
+  ['Active', 'activity', t => t.state === 'metadata' || t.state === 'checking' || moving(t)],
+  ['Downloading', 'arrow-down', t => ['metadata', 'downloading', 'checking'].includes(t.state)],
+  ['Seeding', 'arrow-up', t => t.state === 'seeding'],
+  ['Paused', 'pause', t => t.state === 'paused'],
+  ['Errors', 'alert', t => t.state === 'error'],
+];
+const STATE = {
+  downloading: ['arrow-down', 'down'], seeding: ['arrow-up', 'up'], metadata: ['magnet', 'checking'],
+  checking: ['refresh', 'checking'], paused: ['pause', 'paused'], error: ['alert', 'error'],
+};
+
+function bytes(n) {
+  const u = ['B', 'kB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  while (n >= 1000 && i < u.length - 1) { n /= 1000; i++; }
+  return `${Number.isInteger(n) ? n : n.toFixed(1)} ${u[i]}`;
+}
+function duration(s) {
+  const d = Math.floor(s / 86400), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60;
+  return s < 60 ? `${s} sec` : s < 3600 ? `${m} min` : s < 86400 ? `${h} hr ${m} min` : `${d} days ${h} hr`;
+}
+const pct = f => (Math.floor(f * 10000) / 100).toFixed(2) + '%';
+const speed = (dir, bps) =>
+  `<span class="speed ${dir} ${bps >= 1 ? 'on' : ''}">${svg(dir === 'down' ? 'arrow-down' : 'arrow-up')}${bytes(bps)}/s</span>`;
+
+function stateLabel(t) {
+  switch (t.state) {
+    case 'error': return `Error: ${t.error || 'unknown'}`;
+    case 'metadata': return 'Fetching metadata from peers';
+    case 'checking': return 'Checking existing data';
+    case 'paused': return 'Paused';
+    case 'downloading': return t.peers ? `Downloading from ${t.peers} peers` : 'Looking for peers';
+    default: return `Seeding to ${t.peers} peers`;
+  }
+}
+function progressLine(t) {
+  if (t.state === 'metadata') return 'Size unknown';
+  if (t.size > 0 && t.downloaded >= t.size) return `${bytes(t.size)}, uploaded ${bytes(t.uploaded)} (Ratio: ${t.ratio.toFixed(2)})`;
+  let s = `${bytes(t.downloaded)} of ${bytes(t.size)} (${pct(t.progress)})`;
+  if (t.state === 'downloading' && t.download_rate >= 1 && t.eta != null) s += ` — ${duration(t.eta)} remaining`;
+  return s;
+}
+
+let torrents = [], filter = 0;
+
+function row(t) {
+  const [glyph, color] = STATE[t.state] || STATE.paused;
+  const resumable = t.state === 'paused' || t.state === 'error';
+  const action = (act, icon, label) =>
+    `<button class="icon" data-act="${act}" data-id="${t.id}" title="${label}" aria-label="${label}">${svg(icon)}</button>`;
+  return `<div class="row ${t.state}" style="--c: var(--${color}); --p: ${(t.progress * 100).toFixed(2)}%">
+    <div class="glyph">${svg(glyph)}</div>
+    <div class="body">
+      <div class="line">
+        <div class="title trunc" title="${esc(t.name)}">${esc(t.name)}</div>
+        <div class="slot">${speed('down', t.download_rate)}</div><div class="slot">${speed('up', t.upload_rate)}</div>
+      </div>
+      <div class="bar"></div>
+      <div class="line sub">
+        <span class="state trunc">${esc(stateLabel(t))}</span><span class="progress trunc">${progressLine(t)}</span>
+      </div>
+    </div>
+    <div class="actions">
+      ${t.state === 'metadata' ? '' : resumable ? action('resume', 'play', t.state === 'error' ? 'Retry' : 'Resume') : action('pause', 'pause', 'Pause')}
+      ${action('remove', 'x', 'Remove (keeps data)')}
+      ${action('delete', 'trash', 'Remove and delete data')}
+    </div>
+  </div>`;
+}
+
+function render() {
+  const [label, icon, match] = FILTERS[filter];
+  const shown = torrents.filter(match);
+  const sum = k => torrents.reduce((a, t) => a + t[k], 0);
+  $('filters').innerHTML = FILTERS.map(([name, icon, m], i) => {
+    const n = torrents.filter(m).length;
+    return `<button class="${i === filter ? 'on' : ''}" data-filter="${i}">${svg(icon)}<span class="name">${name}</span>${n ? `<span class="count">${n}</span>` : ''}</button>`;
+  }).join('');
+  $('totals').innerHTML = speed('down', sum('download_rate')) + speed('up', sum('upload_rate'));
+  const fetching = torrents.filter(t => t.state === 'metadata').length;
+  $('note').textContent = fetching ? `Fetching metadata for ${fetching} magnet link(s)…` : `${torrents.length} transfers`;
+  $('title').textContent = label;
+  $('count').textContent = shown.length;
+  $('list').innerHTML = shown.length ? shown.map(row).join('') : torrents.length
+    ? `<div class="empty"><div class="badge">${svg(icon)}</div><h2>Nothing in ${label}</h2></div>`
+    : `<div class="empty"><div class="badge">${svg('magnet')}</div><h2>No transfers yet</h2>
+       <p>Drop a .torrent file here, or add one below.</p>
+       <div class="buttons"><button class="btn primary" data-act="open">Open Torrent…</button><button class="btn" data-act="magnet">Add Magnet Link</button></div></div>`;
+}
+
+async function rpc(method, params = {}) {
+  const r = await fetch('/torrie/rpc', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+  });
+  const body = await r.json();
+  if (body.error) throw new Error(body.error.message);
+  return body.result;
+}
+
+function show(error) {
+  $('banner').textContent = error || '';
+  $('banner').style.display = error ? 'block' : 'none';
+}
+
+let timer;
+async function refresh() {
+  clearTimeout(timer);
+  try { torrents = await rpc('torrents.list'); show(); render(); }
+  catch { show("Can't reach Torrie. Is it running with Remote control on?"); }
+  if (!document.hidden) timer = setTimeout(refresh, 1000);
+}
+document.addEventListener('visibilitychange', () => document.hidden || refresh());
+
+async function act(fn) {
+  try { await fn(); } catch (e) { show(e.message); return; }
+  refresh();
+}
+
+// Adding
+const toggleMagnet = () => {
+  const on = $('addbar').classList.toggle('on');
+  $('magnet').classList.toggle('on', on);
+  if (on) $('link').focus();
+};
+$('magnet').onclick = toggleMagnet;
+$('addbar').onsubmit = e => {
+  e.preventDefault();
+  const link = $('link').value.trim();
+  if (link) act(async () => { await rpc('torrents.add', { link }); $('link').value = ''; toggleMagnet(); });
+};
+const base64 = file => new Promise((ok, fail) => {
+  const r = new FileReader();
+  r.onload = () => ok(r.result.split(',')[1]);
+  r.onerror = fail;
+  r.readAsDataURL(file);
+});
+const addFiles = files => act(async () => {
+  for (const f of files) await rpc('torrents.add', { torrent: await base64(f) });
+});
+$('files').onchange = e => { addFiles([...e.target.files]); e.target.value = ''; };
+document.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('drop'); });
+document.addEventListener('dragleave', e => e.relatedTarget || document.body.classList.remove('drop'));
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  document.body.classList.remove('drop');
+  const files = [...e.dataTransfer.files].filter(f => f.name.endsWith('.torrent'));
+  if (files.length) addFiles(files);
+});
+
+// Clicks
+$('filters').onclick = e => {
+  const b = e.target.closest('[data-filter]');
+  if (b) { filter = Number(b.dataset.filter); render(); }
+};
+$('list').onclick = e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const ids = Number(b.dataset.id);
+  switch (b.dataset.act) {
+    case 'open': return $('files').click();
+    case 'magnet': return toggleMagnet();
+    case 'pause': return act(() => rpc('torrents.pause', { ids }));
+    case 'resume': return act(() => rpc('torrents.resume', { ids }));
+    case 'remove': return act(() => rpc('torrents.remove', { ids }));
+    case 'delete': {
+      const t = torrents.find(t => t.id === ids);
+      $('confirm-text').textContent = `“${t?.name ?? 'This transfer'}” and its downloaded files will be deleted.`;
+      $('confirm').returnValue = '';
+      $('confirm').onclose = () => $('confirm').returnValue && act(() => rpc('torrents.remove', { ids, delete_files: true }));
+      $('confirm').showModal();
+    }
+  }
+};
+
+document.querySelectorAll('[data-icon]').forEach(el => el.insertAdjacentHTML('beforeend', svg(el.dataset.icon)));
+refresh();
+</script>
+</body>
+</html>

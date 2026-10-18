@@ -1,0 +1,14 @@
+{
+  "id": "shortcuts",
+  "name": "Shortcuts",
+  "version": "1.0.0",
+  "description": "Runs a Shortcut on each finished download",
+  "author": "Torrie",
+  "hooks": { "torrent-done": "shortcuts.sh" },
+  "timeout": 600,
+  "contributes": {
+    "settings": [
+      { "key": "shortcut", "title": "Shortcut", "description": "Its name in the Shortcuts app; gets the download as input" }
+    ]
+  }
+}

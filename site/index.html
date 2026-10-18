@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Torrie: Open Source BitTorrent Client for macOS</title>
+<meta name="description" content="Torrie is a free, open source BitTorrent client for macOS. Native UI, plugins, a web remote, and a remote control API.">
+<meta name="keywords" content="torrent client mac, bittorrent client macos, open source torrent client, free torrent app, magnet links, web remote, apple silicon, rust">
+<link rel="canonical" href="https://torrie.download/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://torrie.download/">
+<meta property="og:title" content="Torrie: Open Source BitTorrent Client for macOS">
+<meta property="og:description" content="A fast, free and open source BitTorrent client for macOS, with plugins and a remote control API.">
+<meta property="og:image" content="https://torrie.download/icon.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="icon.png" alt="">Torrie</a>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#remote">Remote</a>
+      <a href="#plugins">Plugins</a>
+      <a href="#faq">FAQ</a>
+      <a href="docs.html">Docs</a>
+      <a href="https://github.com/kronzhq/torrie">GitHub</a>
+    </nav>
+    <a class="btn" style="height:36px;padding:0 14px;font-size:14px" href="https://dl.kronz.xyz/torrie/Torrie.dmg">Download</a>
+  </div>
+</div>
+
+<div class="wrap hero">
+  <canvas class="glow" aria-hidden="true"></canvas>
+  <img src="icon.png" alt="Torrie mascot">
+  <h1>BitTorrent, made simple<br>for your Mac.</h1>
+  <p>A fast, native client with plugins and a remote control API.</p>
+  <div class="actions">
+    <a class="btn" href="https://dl.kronz.xyz/torrie/Torrie.dmg">
+      <svg viewBox="0 0 256 256"><path d="M205.66,149.66l-72,72a8,8,0,0,1-11.32,0l-72-72a8,8,0,0,1,11.32-11.32L120,196.69V40a8,8,0,0,1,16,0V196.69l58.34-58.35a8,8,0,0,1,11.32,11.32Z"/></svg>
+      Download for macOS
+    </a>
+    <a class="btn ghost" href="https://github.com/kronzhq/torrie">View source on GitHub</a>
+  </div>
+  <div class="meta"><span>Free &amp; open source</span><span>macOS 12+</span><span>MIT</span></div>
+
+  <div class="window" aria-hidden="true">
+    <aside>
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="on"><svg viewBox="0 0 256 256"><path d="M230.91,172A8,8,0,0,1,228,182.91l-96,56a8,8,0,0,1-8.06,0l-96-56A8,8,0,0,1,36,169.09l92,53.65,92-53.65A8,8,0,0,1,230.91,172ZM220,121.09l-92,53.65L36,121.09A8,8,0,0,0,28,134.91l96,56a8,8,0,0,0,8.06,0l96-56A8,8,0,1,0,220,121.09ZM24,80a8,8,0,0,1,4-6.91l96-56a8,8,0,0,1,8.06,0l96,56a8,8,0,0,1,0,13.82l-96,56a8,8,0,0,1-8.06,0l-96-56A8,8,0,0,1,24,80Zm23.88,0L128,126.74,208.12,80,128,33.26Z"/></svg>All<span>4</span></div>
+      <div><svg viewBox="0 0 256 256"><path d="M205.66,149.66l-72,72a8,8,0,0,1-11.32,0l-72-72a8,8,0,0,1,11.32-11.32L120,196.69V40a8,8,0,0,1,16,0V196.69l58.34-58.35a8,8,0,0,1,11.32,11.32Z"/></svg>Downloading<span>2</span></div>
+      <div><svg viewBox="0 0 256 256"><path d="M205.66,117.66a8,8,0,0,1-11.32,0L136,59.31V216a8,8,0,0,1-16,0V59.31L61.66,117.66a8,8,0,0,1-11.32-11.32l72-72a8,8,0,0,1,11.32,0l72,72A8,8,0,0,1,205.66,117.66Z"/></svg>Seeding<span>1</span></div>
+      <div><svg viewBox="0 0 256 256"><path d="M200,32H160a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm0,176H160V48h40ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Zm0,176H56V48H96Z"/></svg>Paused<span>1</span></div>
+      <figure class="speeds"><figcaption><span style="color:var(--down)"><svg viewBox="0 0 256 256"><path d="M205.66,149.66l-72,72a8,8,0,0,1-11.32,0l-72-72a8,8,0,0,1,11.32-11.32L120,196.69V40a8,8,0,0,1,16,0V196.69l58.34-58.35a8,8,0,0,1,11.32,11.32Z"/></svg><b data-total="down">24.5</b> MB/s</span><span style="color:var(--up)"><svg viewBox="0 0 256 256"><path d="M205.66,117.66a8,8,0,0,1-11.32,0L136,59.31V216a8,8,0,0,1-16,0V59.31L61.66,117.66a8,8,0,0,1-11.32-11.32l72-72a8,8,0,0,1,11.32,0l72,72A8,8,0,0,1,205.66,117.66Z"/></svg><b data-total="up">2.3</b> MB/s</span></figcaption><canvas class="graph"></canvas></figure>
+    </aside>
+    <div>
+      <header>All transfers</header>
+      <div class="row"><b>ubuntu-24.04-desktop-amd64.iso</b><small data-dir="down"><svg viewBox="0 0 256 256" style="color:var(--down)"><path d="M205.66,149.66l-72,72a8,8,0,0,1-11.32,0l-72-72a8,8,0,0,1,11.32-11.32L120,196.69V40a8,8,0,0,1,16,0V196.69l58.34-58.35a8,8,0,0,1,11.32,11.32Z"/></svg><span>18.4</span> MB/s</small><canvas class="bar" style="--c:var(--down)" data-p="64"></canvas></div>
+      <div class="row"><b>Big Buck Bunny (1080p)</b><small data-dir="down"><svg viewBox="0 0 256 256" style="color:var(--down)"><path d="M205.66,149.66l-72,72a8,8,0,0,1-11.32,0l-72-72a8,8,0,0,1,11.32-11.32L120,196.69V40a8,8,0,0,1,16,0V196.69l58.34-58.35a8,8,0,0,1,11.32,11.32Z"/></svg><span>6.1</span> MB/s</small><canvas class="bar" style="--c:var(--down)" data-p="31"></canvas></div>
+      <div class="row"><b>debian-12.7.0-arm64-DVD-1.iso</b><small data-dir="up"><svg viewBox="0 0 256 256" style="color:var(--up)"><path d="M205.66,117.66a8,8,0,0,1-11.32,0L136,59.31V216a8,8,0,0,1-16,0V59.31L61.66,117.66a8,8,0,0,1-11.32-11.32l72-72a8,8,0,0,1,11.32,0l72,72A8,8,0,0,1,205.66,117.66Z"/></svg><span>2.3</span> MB/s</small><canvas class="bar" style="--c:var(--up)" data-p="100"></canvas></div>
+      <div class="row"><b>Creative Commons Music Pack</b><small>Paused</small><canvas class="bar" style="--c:var(--paused)" data-p="47"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <h2>Everything you need, nothing you don't</h2>
+    <p class="lead">Built natively for macOS with Zed's GPU-accelerated UI framework and a fast Rust BitTorrent engine.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M207,50.25A87.46,87.46,0,0,0,144.6,24h-.33A87.48,87.48,0,0,0,82,49.81L20.61,112a16,16,0,0,0,.06,22.56l28.66,28.66a15.92,15.92,0,0,0,11.32,4.69h.09a16,16,0,0,0,11.36-4.82L133,100.69a16.08,16.08,0,0,1,22.41-.21,15.6,15.6,0,0,1,4.73,11.19,16.89,16.89,0,0,1-4.85,12L93,183.88a16,16,0,0,0-.17,22.79l28.66,28.66a16.06,16.06,0,0,0,22.52.12L205.81,175C240.26,140.5,240.79,84.56,207,50.25ZM60.65,151.89,32,123.24,55.8,99.12l28.52,28.52ZM132.79,224l-28.68-28.65,24.38-23.57L157,200.32Zm61.76-60.44-26.11,25.54L140,160.68l26.44-25.57.1-.09a33,33,0,0,0,9.57-23.5A31.44,31.44,0,0,0,166.47,89a32.2,32.2,0,0,0-44.9.5L95.49,116.18,67,87.74,93.35,61.09A71.51,71.51,0,0,1,144.27,40h.27a71.55,71.55,0,0,1,51.05,21.48C223.25,89.55,222.75,135.38,194.55,163.58Z"/></svg></div>
+        <h3>Add anything</h3>
+        <p>Drag in <code>.torrent</code> files, click <code>magnet:</code> links, or paste one with Cmd+U.</p>
+      </div>
+      <div class="card" style="--c:var(--down)">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Z"/></svg></div>
+        <h3>Choose files</h3>
+        <p>Pick what to download before and during a transfer, with per-file progress.</p>
+      </div>
+      <div class="card" style="--c:var(--up)">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"/></svg></div>
+        <h3>Inspector</h3>
+        <p>Press Cmd+I for an overview, files, peers with country flags, and trackers.</p>
+      </div>
+      <div class="card" style="--c:var(--checking)">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M207.06,72.67A111.24,111.24,0,0,0,128,40h-.4C66.07,40.21,16,91,16,153.13V176a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V152A111.25,111.25,0,0,0,207.06,72.67ZM224,176H119.71l54.76-75.3a8,8,0,0,0-12.94-9.42L99.92,176H32V153.13c0-3.08.15-6.12.43-9.13H56a8,8,0,0,0,0-16H35.27c10.32-38.86,44-68.24,84.73-71.66V80a8,8,0,0,0,16,0V56.33A96.14,96.14,0,0,1,221,128H200a8,8,0,0,0,0,16h23.67c.21,2.65.33,5.31.33,8Z"/></svg></div>
+        <h3>Speed limits</h3>
+        <p>Set limits, plus an alternative set you can schedule by time and weekday.</p>
+      </div>
+      <div class="card" style="--c:var(--error)">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z"/></svg></div>
+        <h3>Watch while downloading</h3>
+        <p>Stream video and audio into IINA, VLC or your default player before it finishes.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200ZM80,84A12,12,0,1,1,68,72,12,12,0,0,1,80,84Zm40,0a12,12,0,1,1-12-12A12,12,0,0,1,120,84Z"/></svg></div>
+        <h3>Menu bar</h3>
+        <p>Live speeds at a glance from the menu bar, and opening at login.</p>
+      </div>
+      <div class="card" style="--c:var(--down)">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M230.91,172A8,8,0,0,1,228,182.91l-96,56a8,8,0,0,1-8.06,0l-96-56A8,8,0,0,1,36,169.09l92,53.65,92-53.65A8,8,0,0,1,230.91,172ZM220,121.09l-92,53.65L36,121.09A8,8,0,0,0,28,134.91l96,56a8,8,0,0,0,8.06,0l96-56A8,8,0,1,0,220,121.09ZM24,80a8,8,0,0,1,4-6.91l96-56a8,8,0,0,1,8.06,0l96,56a8,8,0,0,1,0,13.82l-96,56a8,8,0,0,1-8.06,0l-96-56A8,8,0,0,1,24,80Zm23.88,0L128,126.74,208.12,80,128,33.26Z"/></svg></div>
+        <h3>Plugins</h3>
+        <p>Add menu commands, Inspector tabs and settings, or run scripts when a download finishes.</p>
+      </div>
+      <div class="card" style="--c:var(--up)">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M128,24h0A104,104,0,1,0,232,128,104.12,104.12,0,0,0,128,24Zm88,104a87.61,87.61,0,0,1-3.33,24H174.16a157.44,157.44,0,0,0,0-48h38.51A87.61,87.61,0,0,1,216,128ZM102,168H154a115.11,115.11,0,0,1-26,45A115.27,115.27,0,0,1,102,168Zm-3.9-16a140.84,140.84,0,0,1,0-48h59.88a140.84,140.84,0,0,1,0,48ZM40,128a87.61,87.61,0,0,1,3.33-24H81.84a157.44,157.44,0,0,0,0,48H43.33A87.61,87.61,0,0,1,40,128ZM154,88H102a115.11,115.11,0,0,1,26-45A115.27,115.27,0,0,1,154,88Zm52.33,0H170.71a135.28,135.28,0,0,0-22.3-45.6A88.29,88.29,0,0,1,206.37,88ZM107.59,42.4A135.28,135.28,0,0,0,85.29,88H49.63A88.29,88.29,0,0,1,107.59,42.4ZM49.63,168H85.29a135.28,135.28,0,0,0,22.3,45.6A88.29,88.29,0,0,1,49.63,168Zm98.78,45.6a135.28,135.28,0,0,0,22.3-45.6h35.66A88.29,88.29,0,0,1,148.41,213.6Z"/></svg></div>
+        <h3>Web remote</h3>
+        <p>Manage downloads from any browser on your phone or another computer.</p>
+      </div>
+      <div class="card" style="--c:var(--checking)">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.4,8.74,80,80,0,0,1,134.14,0,8,8,0,0,0,13.4-8.74A95.83,95.83,0,0,0,117.25,157.92ZM40,108a44,44,0,1,1,44,44A44.05,44.05,0,0,1,40,108Zm210.14,98.7a8,8,0,0,1-11.07-2.33A79.83,79.83,0,0,0,172,168a8,8,0,0,1,0-16,44,44,0,1,0-16.34-84.87,8,8,0,1,1-5.94-14.85,60,60,0,0,1,55.53,105.64,95.83,95.83,0,0,1,47.22,37.71A8,8,0,0,1,250.14,206.7Z"/></svg></div>
+        <h3>Works with your stack</h3>
+        <p>Connect your own apps and scripts through the API.</p>
+      </div>
+      <div class="card" style="--c:var(--error)">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M224,48V96a8,8,0,0,1-8,8H168a8,8,0,0,1,0-16h28.69L182.06,73.37a79.56,79.56,0,0,0-56.13-23.43h-.45A79.52,79.52,0,0,0,69.59,72.71,8,8,0,0,1,58.41,61.27a96,96,0,0,1,135,.79L208,76.69V48a8,8,0,0,1,16,0ZM186.41,183.29a80,80,0,0,1-112.47-.66L59.31,168H88a8,8,0,0,0,0-16H40a8,8,0,0,0-8,8v48a8,8,0,0,0,16,0V179.31l14.63,14.63A95.43,95.43,0,0,0,130,222.06h.53a95.36,95.36,0,0,0,67.07-27.33,8,8,0,0,0-11.18-11.44Z"/></svg></div>
+        <h3>Updates itself</h3>
+        <p>Only installs notarized builds signed by the same developer.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M40,88H73a32,32,0,0,0,62,0h81a8,8,0,0,0,0-16H135a32,32,0,0,0-62,0H40a8,8,0,0,0,0,16Zm64-24A16,16,0,1,1,88,80,16,16,0,0,1,104,64ZM216,168H199a32,32,0,0,0-62,0H40a8,8,0,0,0,0,16h97a32,32,0,0,0,62,0h17a8,8,0,0,0,0-16Zm-48,24a16,16,0,1,1,16-16A16,16,0,0,1,168,192Z"/></svg></div>
+        <h3>Themes &amp; accents</h3>
+        <p>Light and dark mode, built-in themes like Catppuccin and Gruvbox, or your own JSON theme.</p>
+      </div>
+      <div class="card" style="--c:var(--down)">
+        <div class="ic"><svg viewBox="0 0 256 256"><path d="M240,128a8,8,0,0,1-8,8H204.94l-37.78,75.58A8,8,0,0,1,160,216h-.4a8,8,0,0,1-7.08-5.14L95.35,60.76,63.28,131.31A8,8,0,0,1,56,136H24a8,8,0,0,1,0-16H50.85L88.72,36.69a8,8,0,0,1,14.76.46l57.51,151,31.85-63.71A8,8,0,0,1,200,120h32A8,8,0,0,1,240,128Z"/></svg></div>
+        <h3>The essentials</h3>
+        <p>DHT, UPnP, stop seeding at a ratio, and fast resume.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="remote">
+  <div class="wrap split">
+    <div>
+      <h2>Control it from anywhere</h2>
+      <p class="lead">Open the built-in web remote in any browser, or connect another app with the settings shown here.</p>
+      <ol class="steps">
+        <li><span>In Settings, open Network and turn on <strong>Remote control</strong>, and <strong>Allow other devices</strong> for anything that isn't this Mac.</span></li>
+        <li><span>Restart Torrie.</span></li>
+        <li><span>Open <code>http://&lt;your Mac's IP&gt;:9091</code> in any browser and sign in with the password shown in Settings.</span></li>
+      </ol>
+      <div class="chips"><span>Web remote</span><span>JSON-RPC</span></div>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:0">Away from home? Reach it over a VPN: the password travels unencrypted. <a href="docs.html#remote-control">API docs →</a></p>
+    </div>
+    <pre><span class="k">Host</span>              <span class="s">192.168.1.20</span>
+<span class="k">Port</span>              <span class="s">9091</span>
+<span class="k">Username</span>          <span class="s">anything</span>
+<span class="k">Password</span>          <span class="s">shown in Torrie's Settings</span></pre>
+  </div>
+</section>
+
+<section id="plugins">
+  <div class="wrap split">
+    <div>
+      <h2>Make it yours with plugins</h2>
+      <p class="lead">A plugin is just a folder with a <code>plugin.json</code>. Add commands to the Plugins menu, tabs to the Inspector, options to Settings, or run a script when a download finishes.</p>
+      <ol class="steps">
+        <li><span><strong>Hooks</strong> run on <code>torrent-added</code>, <code>torrent-done</code> and <code>torrent-done-seeding</code>.</span></li>
+        <li><span><strong>Plugin processes</strong> talk JSON-RPC 2.0 over stdin and stdout, in any language.</span></li>
+        <li><span><strong>Share</strong> a <code>.torrieplugin</code> package with a one-click <code>torrie://install</code> link.</span></li>
+      </ol>
+      <p style="margin:16px 0 0"><a href="docs.html#plugins">Read the plugin docs →</a></p>
+    </div>
+    <pre>{
+  <span class="k">"id"</span>: <span class="s">"media-organizer"</span>,
+  <span class="k">"name"</span>: <span class="s">"Media Organizer"</span>,
+  <span class="k">"version"</span>: <span class="s">"1.0.0"</span>,
+  <span class="k">"description"</span>: <span class="s">"Renames finished movies for Plex"</span>,
+  <span class="k">"hooks"</span>: {
+    <span class="k">"torrent-done"</span>: <span class="s">"on-done.sh"</span>
+  }
+}</pre>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2>Good to know</h2>
+    <p class="lead">The short answers.</p>
+    <table>
+      <tr><td>Requirements</td><td>macOS 12 or later.</td></tr>
+      <tr><td>Price</td><td>Free and open source under the MIT license. Read the code, report issues and send fixes on <a href="https://github.com/kronzhq/torrie">GitHub</a>.</td></tr>
+      <tr><td>Default app</td><td>Move Torrie to Applications and launch it once to open <code>.torrent</code> files and <code>magnet:</code> links.</td></tr>
+      <tr><td>Settings</td><td>Saved to <code>~/Library/Application Support/Torrie/settings.json</code>.</td></tr>
+      <tr><td>Built with</td><td><a href="https://github.com/ikatson/rqbit">librqbit</a>, <a href="https://gpui.rs">GPUI</a>, <a href="https://tokio.rs">Tokio</a> + <a href="https://github.com/tokio-rs/axum">axum</a>, tray-icon, objc2, resvg and maxminddb.</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <img src="icon.png" alt="">
+    <h2>Ready when you are.</h2>
+    <p class="lead" style="margin:0 auto 32px">Free and open source. One download.</p>
+    <a class="btn" href="https://dl.kronz.xyz/torrie/Torrie.dmg">Download for macOS</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Open source under the MIT license. Copyright 2026 <a href="https://kronz.xyz">Kronz</a>. Source on <a href="https://github.com/kronzhq/torrie">GitHub</a>.</p>
+  </div>
+</footer>
+
+<script>
+  // Reveal sections as they scroll in, staggering cards in each row.
+  const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && (e.target.classList.add('in'), io.unobserve(e.target))), { rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('section h2, section .lead, .card, .split > *, table, .cta img, .cta .btn').forEach(el => {
+    if (el.matches('.card')) el.style.setProperty('--i', [...el.parentNode.children].indexOf(el) % 3);
+    el.classList.add('reveal');
+    io.observe(el);
+  });
+
+  // Torrie's dither grain (apps/torrie/src/theme.rs): 2px columns with 1px gaps, edges fading through a 4x4 Bayer pattern.
+  const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const css = (el, v) => getComputedStyle(el).getPropertyValue(v).trim();
+  function paint(cv, draw) {
+    const r = devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight, g = cv.getContext('2d');
+    cv.width = w * r; cv.height = h * r; g.scale(r, r);
+    draw((x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); }, w, h);
+  }
+  // progress_bar: the leading edge fades out over 6 columns.
+  const bar = (cv, f) => paint(cv, (rect, w, h) => {
+    const [c, track] = [css(cv, '--c'), css(cv, '--elevated')], cols = Math.floor((w + 1) / 3), filled = Math.round(cols * f);
+    for (let i = 0; i < cols; i++) {
+      rect(i * 3, 0, 2, h, i < filled ? c : track);
+      const k = i - filled, density = 16 - Math.floor((k + 1) * 16 / 7);
+      if (filled && k >= 0 && k < 6) for (let y = 0; y < h; y++) for (let dx = 0; dx < 2; dx++)
+        if (BAYER[y % 4][(i * 2 + dx) % 4] < density) rect(i * 3 + dx, y, 1, 1, c);
+    }
+  });
+  // speed_graph: a column per second, ↓ under ↑, each top fading out over 3 rows.
+  const graph = (cv, hist) => paint(cv, (rect, w, rows) => {
+    const [down, up, track, hatch] = [css(cv, '--down'), css(cv, '--up') + 'bf', css(cv, '--elevated'), css(cv, '--faint') + '99'], cols = Math.floor((w + 1) / 3);
+    const max = Math.max(...hist.map(([d, u]) => d + u)) * 1.15, ht = v => Math.min(rows, Math.round(v / max * rows));
+    hist = hist.slice(-cols);
+    for (let i = 0; i < cols; i++) rect(i * 3, 0, 2, rows, track);
+    // bayer_hatch: sparse dots over the field, thickening toward the bottom.
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols * 3; x++)
+      if (BAYER[y % 4][x % 4] < 1 + Math.floor(4 * y / rows)) rect(x, y, 1, 1, hatch);
+    for (let i = 0; i < cols; i++) {
+      const x = i * 3, s = hist[i - (cols - hist.length)];
+      if (!s) continue;
+      const dh = ht(s[0]), top = rows - ht(s[0] + s[1]), c = rows - top > dh ? up : down;
+      rect(x, rows - dh, 2, dh, down);
+      rect(x, top, 2, rows - dh - top, up);
+      for (let k = 0; k < Math.min(3, top); k++) for (let dx = 0; dx < 2; dx++)
+        if (BAYER[(top - 1 - k) % 4][(x + dx) % 4] < 16 - (k + 1) * 4) rect(x + dx, top - 1 - k, 1, 1, c);
+    }
+  });
+  // The hero glow, dithered in the same grain instead of a smooth gradient.
+  const glow = cv => paint(cv, (rect, w, h) => {
+    const c = css(cv, '--accent');
+    for (let y = 0; y * 3 < h; y++) for (let x = 0; x * 3 < w; x++) {
+      const v = 1 - Math.hypot((x * 3 - w / 2) / (w / 2), (y * 3 - h / 2) / (h / 2));
+      if (v * 12 > BAYER[y % 4][x % 4] + .5) rect(x * 3, y * 3, 2, 2, c);
+    }
+  });
+
+  // Keep the mock window alive: speeds wobble, downloads creep forward and the sidebar graph scrolls.
+  const bars = [...document.querySelectorAll('.row .bar')].map(cv => ({ cv, p: cv.dataset.p / 100 }));
+  const live = [...document.querySelectorAll('.row small[data-dir]')].map(s => ({ s, speed: parseFloat(s.querySelector('span').textContent) }));
+  const total = dir => live.filter(l => l.s.dataset.dir == dir).reduce((a, l) => a + l.speed * (0.7 + Math.random() * 0.6), 0);
+  const hist = Array.from({ length: 60 }, () => [total('down'), total('up')]), cv = document.querySelector('.graph');
+  const draw = (t = 1) => { bars.forEach(b => bar(b.cv, b.p * t)); graph(cv, hist); };
+  const ease = t => 1 - (1 - t) ** 3, t0 = performance.now() + 900;
+  matchMedia('(prefers-reduced-motion: reduce)').matches ? draw()
+    : requestAnimationFrame(function fill(now) { const t = Math.max(0, Math.min(1, (now - t0) / 1400)); draw(ease(t)); t < 1 && requestAnimationFrame(fill); });
+  glow(document.querySelector('.glow'));
+  addEventListener('resize', () => { draw(); glow(document.querySelector('.glow')); });
+  setInterval(() => {
+    live.forEach(l => l.s.querySelector('span').textContent = (l.speed * (0.85 + Math.random() * 0.3)).toFixed(1));
+    bars.forEach((b, i) => live[i]?.s.dataset.dir == 'down' && (b.p = Math.min(.99, b.p + Math.random() * .006)));
+    hist.push([total('down'), total('up')]); hist.splice(0, hist.length - 120);
+    document.querySelectorAll('[data-total]').forEach((b, i) => b.textContent = hist.at(-1)[i].toFixed(1));
+    draw();
+  }, 1000);
+</script>
+</body>
+</html>

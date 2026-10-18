@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Torrie Docs: Remote Control, API and Plugins</title>
+<meta name="description" content="Torrie's technical docs: the web remote, the JSON-RPC API, the Transmission protocol, plugin hooks, environment variables and the plugin protocol.">
+<link rel="canonical" href="https://torrie.download/docs.html">
+<link rel="icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="top">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="icon.png" alt="">Torrie</a>
+    <nav>
+      <a href="./#features">Features</a>
+      <a href="#remote-control">Remote</a>
+      <a href="#plugins">Plugins</a>
+      <a href="docs.html">Docs</a>
+      <a href="https://github.com/kronzhq/torrie">GitHub</a>
+    </nav>
+    <a class="btn" style="height:36px;padding:0 14px;font-size:14px" href="https://dl.kronz.xyz/torrie/Torrie.dmg">Download</a>
+  </div>
+</div>
+
+<div class="wrap docs">
+  <!-- docs -->
+  <nav>
+    <a class="group" href="#getting-started">Getting started</a>
+    <a class="group" href="#remote-control">Remote control</a>
+    <a href="#web-remote">Web remote</a>
+    <a href="#security">Security</a>
+    <a href="#torrie-api">Torrie API</a>
+    <a href="#torrent-object">Torrent object</a>
+    <a href="#transmission-protocol">Transmission protocol</a>
+    <a class="group" href="#plugins">Plugins</a>
+    <a href="#manifest">Manifest</a>
+    <a href="#hooks">Hooks</a>
+    <a href="#plugin-process">Plugin process</a>
+    <a href="#packages-and-install-links">Packages and install links</a>
+    <a href="#guard-rails">Guard rails</a>
+    <a href="#bundled-plugins">Bundled plugins</a>
+    <a href="#recipes">Recipes</a>
+  </nav>
+  <main>
+<section>
+<h1 id="getting-started">Getting started</h1>
+<p>Download <a href="https://dl.kronz.xyz/torrie/Torrie.dmg">Torrie.dmg</a>, drag Torrie to Applications and launch it once. It then opens <code>.torrent</code> files and <code>magnet:</code> links. Torrie needs macOS 12 or later.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settings file</td>
+<td><code>~/Library/Application Support/Torrie/settings.json</code>, readable by you only</td>
+</tr>
+<tr>
+<td>Plugins folder</td>
+<td><code>~/Library/Application Support/Torrie/plugins/</code></td>
+</tr>
+<tr>
+<td>Add a torrent</td>
+<td>Drag in a <code>.torrent</code>, click a <code>magnet:</code> link, or paste one with <code>Cmd+U</code></td>
+</tr>
+<tr>
+<td>Inspector</td>
+<td><code>Cmd+I</code>: overview, files, peers and trackers</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><a href="#remote-control">Remote control</a>: the web remote, Torrie's API and the Transmission protocol.</li>
+<li><a href="#plugins">Plugins</a>: hooks, plugin processes, packages and recipes.</li>
+</ul>
+<!-- These files are also the website's docs page (site/docs.html renders them), so edit them here. -->
+</section>
+<section>
+<h1 id="remote-control">Remote control</h1>
+<p>Settings → Network → <strong>Remote control</strong> (off by default) serves a web remote, Torrie's own API and the Transmission protocol, all on one port, <code>9091</code> unless you change it beside the switch. It listens on this Mac only unless <strong>Allow other devices</strong> is on. Restart Torrie after switching either on or changing the port.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Web remote</td>
+<td><code>http://&lt;Mac's IP&gt;:9091</code>, or <code>http://localhost:9091</code> on this Mac</td>
+</tr>
+<tr>
+<td>Torrie API</td>
+<td><code>/torrie/rpc</code>, JSON-RPC 2.0</td>
+</tr>
+<tr>
+<td>Transmission</td>
+<td><code>/transmission/rpc</code>, rpc-version 17</td>
+</tr>
+</tbody>
+</table>
+<h2 id="web-remote">Web remote</h2>
+<p>Open <code>http://&lt;this Mac's IP&gt;:9091</code> in any browser, or <code>http://localhost:9091</code> on this Mac. You can add magnet links, URLs and <code>.torrent</code> files (drop them on the page), filter the list, and pause, resume or remove transfers. From another device, the browser asks for the password once (any username) and remembers it for a year.</p>
+<h2 id="security">Security</h2>
+<ul>
+<li>Connections from other machines need HTTP Basic auth: any username, and the password shown under Allow other devices (like <code>abcde-fghij</code>: 10 characters plus the dash, 50 bits). <strong>New</strong> replaces it at once and signs every browser out.</li>
+<li>Local connections are judged by their address, with a localhost <code>Host</code> header required against DNS rebinding.</li>
+<li>It's plain HTTP, so the password travels readable on the network. Use it on networks you trust, or over a VPN.</li>
+<li>API requests need <code>Content-Type: application/json</code>, and either no <code>Origin</code> header or Torrie's own, which keeps other web pages out.</li>
+<li><code>settings.json</code> is saved readable by you only.</li>
+</ul>
+<h2 id="torrie-api">Torrie API</h2>
+<p><a href="https://www.jsonrpc.org/specification">JSON-RPC 2.0</a> at <code>http://127.0.0.1:9091/torrie/rpc</code>, described in <a href="https://github.com/kronzhq/torrie/blob/master/apps/torrie/openrpc.json"><code>openrpc.json</code></a>, which <code>rpc.discover</code> also returns. Torrents are named by <code>ids</code>: an id, an info hash, or a list of them. Hooks get its URL as <code>TORRIE_RPC_URL</code>; plugin processes call the same methods directly.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>torrents.list</code></td>
+<td>Every torrent, or those in <code>ids</code>. Returns <a href="#torrent-object">torrent objects</a>.</td>
+</tr>
+<tr>
+<td><code>torrents.add</code></td>
+<td><code>link</code> (magnet, http(s) URL of a <code>.torrent</code>, or a local path) or <code>torrent</code> (base64 <code>.torrent</code>); optional <code>dir</code> (absolute folder) and <code>paused</code>. Returns <code>{ name, hash, id, duplicate }</code>. Finishes in the background, so a new torrent's <code>id</code> is <code>null</code>; one already added comes back with its <code>id</code> and <code>duplicate: true</code>. <code>hash</code> is empty for an http(s) URL until it's fetched.</td>
+</tr>
+<tr>
+<td><code>torrents.pause</code></td>
+<td><code>ids</code></td>
+</tr>
+<tr>
+<td><code>torrents.resume</code></td>
+<td><code>ids</code></td>
+</tr>
+<tr>
+<td><code>torrents.remove</code></td>
+<td><code>ids</code>, optional <code>delete_files</code></td>
+</tr>
+<tr>
+<td><code>settings.get</code></td>
+<td>Every setting, as in <code>settings.json</code>.</td>
+</tr>
+<tr>
+<td><code>settings.set</code></td>
+<td>Changes the settings given and returns them all. Plugin, remote control and appearance settings can only change in the Settings window.</td>
+</tr>
+<tr>
+<td><code>rpc.discover</code></td>
+<td>The OpenRPC document.</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-sh">curl -s localhost:9091/torrie/rpc -H 'Content-Type: application/json' \
+  -d '{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;id&quot;:1,&quot;method&quot;:&quot;torrents.add&quot;,&quot;params&quot;:{&quot;link&quot;:&quot;magnet:?xt=urn:btih:...&quot;,&quot;dir&quot;:&quot;/Volumes/Media/TV&quot;}}'
+</code></pre>
+<h2 id="torrent-object">Torrent object</h2>
+<p>What <code>torrents.list</code> returns, and what plugin processes receive as <code>torrent</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code>, <code>hash</code></td>
+<td>Integer id and info hash</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>String</td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td><code>checking</code>, <code>downloading</code>, <code>seeding</code>, <code>paused</code> or <code>error</code></td>
+</tr>
+<tr>
+<td><code>error</code></td>
+<td>String or <code>null</code></td>
+</tr>
+<tr>
+<td><code>progress</code></td>
+<td>0 to 1</td>
+</tr>
+<tr>
+<td><code>size</code>, <code>downloaded</code></td>
+<td>Bytes</td>
+</tr>
+<tr>
+<td><code>uploaded</code></td>
+<td>Bytes, ever, kept across pauses and relaunches</td>
+</tr>
+<tr>
+<td><code>ratio</code></td>
+<td><code>uploaded</code> ÷ <code>size</code></td>
+</tr>
+<tr>
+<td><code>download_rate</code>, <code>upload_rate</code></td>
+<td>Bytes per second</td>
+</tr>
+<tr>
+<td><code>eta</code></td>
+<td>Seconds, or <code>null</code> while nothing is coming in</td>
+</tr>
+<tr>
+<td><code>peers</code></td>
+<td>Integer</td>
+</tr>
+<tr>
+<td><code>path</code></td>
+<td>The downloaded file or folder</td>
+</tr>
+</tbody>
+</table>
+<h2 id="transmission-protocol">Transmission protocol</h2>
+<p>The Transmission <a href="https://github.com/transmission/transmission/blob/main/docs/rpc-spec.md">RPC protocol</a> (rpc-version 17) at <code>http://127.0.0.1:9091/transmission/rpc</code>, so anything built for that protocol can drive Torrie: media managers, <code>transmission-remote</code>, desktop and phone remotes. It needs the protocol's <code>X-Transmission-Session-Id</code> handshake.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Supported</td>
+<td><code>session-get</code>, <code>session-set</code>, <code>session-stats</code>, <code>torrent-get</code>, <code>torrent-add</code> (with <code>download-dir</code> and <code>paused</code>), <code>torrent-start</code>, <code>torrent-start-now</code>, <code>torrent-stop</code>, <code>torrent-verify</code>, <code>torrent-reannounce</code>, <code>torrent-remove</code></td>
+</tr>
+<tr>
+<td>Accepted, ignored</td>
+<td><code>torrent-set</code>, <code>queue-move-*</code></td>
+</tr>
+<tr>
+<td>Magnets</td>
+<td>Listed while fetching metadata (status downloading, <code>metadataPercentComplete</code> 0), so a grab shows up at once.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="adding-torrie-as-a-download-client">Adding Torrie as a download client</h3>
+<p>In an app that manages downloads, add a download client of type <strong>Transmission</strong> with URL base <code>/transmission/</code> and port <code>9091</code>:</p>
+<ul>
+<li>On this Mac: host <code>localhost</code>, no username or password.</li>
+<li>In Docker or on another machine: switch on Allow other devices; host <code>host.docker.internal</code> (Docker) or this Mac's IP; any username and the password.</li>
+</ul>
+<p>Phone and desktop remotes work the same way: this Mac's IP, port 9091, any username and the password. macOS may ask once whether Torrie may accept incoming connections.</p>
+<pre><code class="language-sh">transmission-remote 9091 -l
+</code></pre>
+</section>
+<section>
+<h1 id="plugins">Plugins</h1>
+<p>Plugins extend Torrie. They can add commands to the menu bar, tabs to the Inspector, and options to Settings, and they can run code when transfers are added or finish.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Plugin</strong></td>
+<td>A folder in <code>~/Library/Application Support/Torrie/plugins/</code>. It's what you install, switch on and share.</td>
+</tr>
+<tr>
+<td><strong>Manifest</strong></td>
+<td>The plugin's <code>plugin.json</code>: what the plugin is and what it adds.</td>
+</tr>
+<tr>
+<td><strong>Event</strong></td>
+<td>Something that happened to a transfer: <code>torrent-added</code>, <code>torrent-done</code> or <code>torrent-done-seeding</code>.</td>
+</tr>
+<tr>
+<td><strong>Hook</strong></td>
+<td>An executable run once for an event. Hooks are compatible with Transmission scripts.</td>
+</tr>
+<tr>
+<td><strong>Plugin process</strong></td>
+<td>The plugin's <code>main</code> executable. Torrie keeps it running while the plugin is on.</td>
+</tr>
+<tr>
+<td><strong>Plugin protocol</strong></td>
+<td>How a plugin process and Torrie talk: <a href="https://www.jsonrpc.org/specification">JSON-RPC 2.0</a>, one message per line on the process's stdin and stdout.</td>
+</tr>
+<tr>
+<td><strong>Contribution</strong></td>
+<td>Something a plugin adds to Torrie's interface, declared under <code>contributes</code>: a command, a panel or a setting.</td>
+</tr>
+<tr>
+<td><strong>Command</strong></td>
+<td>An item in the <strong>Plugins</strong> menu, run by the plugin process.</td>
+</tr>
+<tr>
+<td><strong>Panel</strong></td>
+<td>An Inspector tab that shows the plugin process's view of the selected transfer.</td>
+</tr>
+<tr>
+<td><strong>View</strong></td>
+<td>What a panel shows: a list of blocks (headings, text, fields, buttons).</td>
+</tr>
+<tr>
+<td><strong>Setting</strong></td>
+<td>A value you set in Settings → Plugins. Hooks and the plugin process read it from their environment.</td>
+</tr>
+<tr>
+<td><strong>Package</strong></td>
+<td>A plugin folder zipped into a <code>.torrieplugin</code> file.</td>
+</tr>
+<tr>
+<td><strong>Install link</strong></td>
+<td><code>torrie://install?url=https://…</code>. Opening it installs the package at that URL.</td>
+</tr>
+</tbody>
+</table>
+<p>Plugins start <strong>off</strong> when they're installed, and again when they're updated. Switch them on in Settings → Plugins (Plugins → Manage Plugins…).</p>
+<h2 id="manifest">Manifest</h2>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;media-organizer&quot;,
+  &quot;name&quot;: &quot;Media Organizer&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;description&quot;: &quot;Renames finished movies for Plex&quot;,
+  &quot;author&quot;: &quot;you&quot;,
+  &quot;hooks&quot;: { &quot;torrent-done&quot;: &quot;on-done.sh&quot; },
+  &quot;timeout&quot;: 300,
+  &quot;main&quot;: &quot;plugin.py&quot;,
+  &quot;contributes&quot;: {
+    &quot;commands&quot;: [{ &quot;id&quot;: &quot;rename&quot;, &quot;title&quot;: &quot;Rename for Plex&quot;, &quot;torrent&quot;: true }],
+    &quot;panels&quot;: [{ &quot;id&quot;: &quot;media&quot;, &quot;title&quot;: &quot;Media&quot; }],
+    &quot;settings&quot;: [
+      { &quot;key&quot;: &quot;library&quot;, &quot;title&quot;: &quot;Library&quot;, &quot;type&quot;: &quot;folder&quot;, &quot;description&quot;: &quot;Where renamed files go&quot; },
+      { &quot;key&quot;: &quot;dry_run&quot;, &quot;title&quot;: &quot;Dry run&quot;, &quot;type&quot;: &quot;boolean&quot;, &quot;default&quot;: true }
+    ]
+  }
+}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>Required. <code>version</code>, <code>description</code> and <code>author</code> are optional; Settings and the install prompt show them.</td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>The folder a package installs to: a-z, 0-9 and dashes. Defaults to <code>name</code> in that form. A plugin folder you make by hand is identified by its folder name instead.</td>
+</tr>
+<tr>
+<td><code>hooks</code></td>
+<td>Event → executable.</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td>Seconds a hook may run (default 60, max 3600).</td>
+</tr>
+<tr>
+<td><code>main</code></td>
+<td>The plugin process's executable. Commands and panels need one.</td>
+</tr>
+<tr>
+<td><code>contributes.commands</code></td>
+<td><code>id</code>, <code>title</code>, and <code>"torrent": true</code> for commands that act on the selected transfer.</td>
+</tr>
+<tr>
+<td><code>contributes.panels</code></td>
+<td><code>id</code>, <code>title</code>.</td>
+</tr>
+<tr>
+<td><code>contributes.settings</code></td>
+<td><code>key</code>, <code>title</code>, <code>description</code>, <code>type</code> (<code>string</code>, the default, or <code>boolean</code> or <code>folder</code>), and <code>default</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Paths are relative to the plugin folder.</p>
+<h2 id="hooks">Hooks</h2>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Runs when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>torrent-added</code></td>
+<td>a torrent is added (magnets once their metadata arrives)</td>
+</tr>
+<tr>
+<td><code>torrent-done</code></td>
+<td>a download finishes</td>
+</tr>
+<tr>
+<td><code>torrent-done-seeding</code></td>
+<td>the ratio limit stops a torrent seeding</td>
+</tr>
+</tbody>
+</table>
+<p>A hook runs inside its plugin's folder with the event name as its argument. It gets Transmission's <a href="https://github.com/transmission/transmission/blob/main/docs/Scripts.md">script variables</a>, so Transmission scripts work unchanged:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TR_TORRENT_NAME</code>, <code>TR_TORRENT_DIR</code></td>
+<td>the data is at <code>$TR_TORRENT_DIR/$TR_TORRENT_NAME</code></td>
+</tr>
+<tr>
+<td><code>TR_TORRENT_ID</code>, <code>TR_TORRENT_HASH</code></td>
+<td>identify the torrent (also over RPC)</td>
+</tr>
+<tr>
+<td><code>TR_TORRENT_BYTES_DOWNLOADED</code>, <code>TR_TORRENT_TRACKERS</code> (comma-separated), <code>TR_TORRENT_LABELS</code>, <code>TR_TORRENT_PRIORITY</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>TR_APP_VERSION</code>, <code>TR_TIME_LOCALTIME</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>TORRIE_EVENT</code></td>
+<td>the event</td>
+</tr>
+<tr>
+<td><code>TORRIE_RPC_URL</code></td>
+<td>Torrie's API, set when Remote control is on (see <a href="#remote-control">Remote control</a>)</td>
+</tr>
+<tr>
+<td><code>TORRIE_SETTING_&lt;KEY&gt;</code></td>
+<td>each of the plugin's settings, with its key in capitals and other characters as <code>_</code> (<code>dry_run</code> → <code>TORRIE_SETTING_DRY_RUN</code>); booleans are <code>true</code> or <code>false</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="plugin-process">Plugin process</h2>
+<p>When a plugin with a <code>main</code> is on, Torrie starts that executable at launch, or when you switch the plugin on. It runs inside the plugin's folder with <code>TORRIE_SETTING_&lt;KEY&gt;</code> variables, and speaks the plugin protocol on stdin and stdout. Its stderr, and anything on stdout that isn't JSON, goes to its log. Changing one of its settings restarts it, and so does Reload in Settings → Plugins. When the plugin is switched off, it gets SIGTERM, then SIGKILL 5 seconds later. It should also exit when stdin closes, which happens when Torrie quits. If it exits on its own, Settings shows why, and Reload starts it again.</p>
+<p>Torrie sends it:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Kind</th>
+<th>Params</th>
+<th>Answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event</code></td>
+<td>notification</td>
+<td><code>{ "event": "torrent-done", "torrent": {…} }</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>command.run</code></td>
+<td>request, 60 s</td>
+<td><code>{ "command": "rename", "torrent": {…} }</code> (<code>torrent</code> is <code>null</code> unless the command has <code>"torrent": true</code>)</td>
+<td>anything; an error shows in the window</td>
+</tr>
+<tr>
+<td><code>panel.render</code></td>
+<td>request, 5 s</td>
+<td><code>{ "panel": "media", "torrent": {…} }</code></td>
+<td>a view</td>
+</tr>
+</tbody>
+</table>
+<p><code>torrent</code> is a transfer as <code>torrents.list</code> returns it. Every plugin process receives every event. A panel is rendered once a second while it's on show, so answer quickly; it's also rendered again after one of its buttons runs a command.</p>
+<p>The plugin process can call Torrie's API: the same methods, params and results as <a href="#remote-control">remote control</a> (<code>torrents.list</code>, <code>torrents.add</code>, <code>torrents.pause</code>, <code>torrents.resume</code>, <code>torrents.remove</code>, <code>settings.get</code>, <code>settings.set</code>), sent over stdout and answered on stdin. Remote control doesn't need to be on.</p>
+<p>A view is a JSON array of blocks. Unknown block types are skipped:</p>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{ "type": "heading", "text": "…" }</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>{ "type": "text", "text": "…" }</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>{ "type": "field", "label": "…", "value": "…" }</code></td>
+<td>a row, like those in the Overview tab</td>
+</tr>
+<tr>
+<td><code>{ "type": "button", "label": "…", "command": "…" }</code></td>
+<td>runs one of the plugin's commands on this transfer (it needn't be in the Plugins menu)</td>
+</tr>
+</tbody>
+</table>
+<p><code>plugin.py</code> for the manifest above, standard library only:</p>
+<pre><code class="language-python">#!/usr/bin/env python3
+import json, os, sys
+
+def send(msg):
+    print(json.dumps({&quot;jsonrpc&quot;: &quot;2.0&quot;, **msg}), flush=True)
+
+library = os.environ.get(&quot;TORRIE_SETTING_LIBRARY&quot;) or &quot;Not set&quot;
+for line in sys.stdin:  # ends when Torrie quits
+    msg = json.loads(line)
+    method, params = msg.get(&quot;method&quot;), msg.get(&quot;params&quot;, {})
+    if method == &quot;panel.render&quot;:
+        t = params[&quot;torrent&quot;]
+        send({&quot;id&quot;: msg[&quot;id&quot;], &quot;result&quot;: [
+            {&quot;type&quot;: &quot;field&quot;, &quot;label&quot;: &quot;Library&quot;, &quot;value&quot;: library},
+            {&quot;type&quot;: &quot;field&quot;, &quot;label&quot;: &quot;Ratio&quot;, &quot;value&quot;: f&quot;{t['ratio']:.2f}&quot;},
+            {&quot;type&quot;: &quot;button&quot;, &quot;label&quot;: &quot;Rename for Plex&quot;, &quot;command&quot;: &quot;rename&quot;},
+        ]})
+    elif method == &quot;command.run&quot;:
+        # Rename the files at params[&quot;torrent&quot;][&quot;path&quot;] here.
+        send({&quot;id&quot;: msg[&quot;id&quot;], &quot;result&quot;: None})
+    elif method and &quot;id&quot; in msg:
+        send({&quot;id&quot;: msg[&quot;id&quot;], &quot;error&quot;: {&quot;code&quot;: -32601, &quot;message&quot;: f&quot;unknown method {method}&quot;}})
+</code></pre>
+<p>To call Torrie, send for example <code>{"jsonrpc": "2.0", "id": "p1", "method": "torrents.pause", "params": {"ids": "&lt;hash&gt;"}}</code>. The answer arrives on stdin with the same <code>id</code> and no <code>method</code>.</p>
+<h2 id="packages-and-install-links">Packages and install links</h2>
+<p>To share a plugin, zip its folder into a package:</p>
+<pre><code class="language-sh">cd media-organizer &amp;&amp; zip -r ../media-organizer.torrieplugin .
+</code></pre>
+<p>Double-clicking a <code>.torrieplugin</code> file opens it in Torrie. To install from the web, publish the file and share an install link, on a web page or in a terminal:</p>
+<pre><code class="language-sh">open 'torrie://install?url=https://github.com/you/media-organizer/releases/download/v1.0.0/media-organizer.torrieplugin'
+</code></pre>
+<p>The <code>url</code> must be https, and the package at most 50 MB. GitHub's source zips work too, since <code>plugin.json</code> may sit in the zip's top folder. Zip keeps executables executable. Torrie asks before installing and shows the plugin's name, author and description. Installing a package replaces any installed plugin with the same <code>id</code>, including files kept in its folder, and leaves it off.</p>
+<h2 id="guard-rails">Guard rails</h2>
+<ul>
+<li>Every executable must be inside the plugin folder: no absolute paths, <code>..</code> or symlinks out.</li>
+<li>Hooks and plugin processes get a clean environment (only <code>PATH</code>, <code>HOME</code>, <code>USER</code>, <code>LOGNAME</code>, <code>LANG</code>, <code>TMPDIR</code> plus the variables above), each in its own process group.</li>
+<li>Hooks get no stdin. After <code>timeout</code> seconds, a hook and everything it started are killed. At most 4 hooks run at once, and Torrie never waits on them.</li>
+<li>Plugins can't change <code>plugins_enabled</code>, <code>plugin_settings</code> or remote control through the API.</li>
+<li>Output goes to <code>plugins/&lt;folder&gt;.log</code>, which starts over past 1 MB. A plugin process's log starts over only when the process restarts.</li>
+<li>Plugins run as you, with your files and network, so only switch on ones you trust.</li>
+</ul>
+<h2 id="bundled-plugins">Bundled plugins</h2>
+<p>Torrie ships two plugins. <code>notify</code> posts a "Download Complete" notification; it's on by default. Copy it to start your own. <code>shortcuts</code> runs a Shortcut from the Shortcuts app on each finished download, with the download's file or folder as its input, so a Shortcut can move it to a NAS, add it to the TV app or message someone. It's off until you name a Shortcut in Settings → Plugins and switch it on.</p>
+<h2 id="recipes">Recipes</h2>
+<p>Each recipe is a folder in <code>plugins/</code> with these two files. <code>chmod +x</code> the script, then click Reload and switch the plugin on in Settings → Plugins. <code>$TR_TORRENT_DIR/$TR_TORRENT_NAME</code> is the downloaded file or folder.</p>
+<p><strong>Copy finished downloads to another drive.</strong> Copies rather than moves, so the torrent keeps seeding.</p>
+<pre><code class="language-json">{ &quot;name&quot;: &quot;Copy to NAS&quot;, &quot;hooks&quot;: { &quot;torrent-done&quot;: &quot;run.sh&quot; }, &quot;timeout&quot;: 3600 }
+</code></pre>
+<pre><code class="language-sh">#!/bin/sh
+cp -R &quot;$TR_TORRENT_DIR/$TR_TORRENT_NAME&quot; /Volumes/NAS/Downloads/
+</code></pre>
+<p><strong>Notify your phone</strong> through <a href="https://ntfy.sh">ntfy</a>: install its app, subscribe to a topic only you know, and enter it in Settings → Plugins.</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;Phone notification&quot;,
+  &quot;hooks&quot;: { &quot;torrent-done&quot;: &quot;run.sh&quot; },
+  &quot;contributes&quot;: { &quot;settings&quot;: [{ &quot;key&quot;: &quot;topic&quot;, &quot;title&quot;: &quot;ntfy topic&quot;, &quot;description&quot;: &quot;A topic only you know&quot; }] }
+}
+</code></pre>
+<pre><code class="language-sh">#!/bin/sh
+curl -s -d &quot;Downloaded: $TR_TORRENT_NAME&quot; &quot;https://ntfy.sh/$TORRIE_SETTING_TOPIC&quot;
+</code></pre>
+<p><strong>Unpack RAR archives</strong> with <code>unar</code> (<code>brew install unar</code>). Multi-part sets are opened from their first part.</p>
+<pre><code class="language-json">{ &quot;name&quot;: &quot;Unrar&quot;, &quot;hooks&quot;: { &quot;torrent-done&quot;: &quot;run.sh&quot; }, &quot;timeout&quot;: 1800 }
+</code></pre>
+<pre><code class="language-sh">#!/bin/sh
+find &quot;$TR_TORRENT_DIR/$TR_TORRENT_NAME&quot; \( -name '*.rar' ! -name '*.part*.rar' -o -name '*.part1.rar' -o -name '*.part01.rar' \) \
+  -execdir unar -quiet -force-overwrite {} \;
+</code></pre>
+<p><strong>Keep a download history</strong> in a CSV file.</p>
+<pre><code class="language-json">{ &quot;name&quot;: &quot;History&quot;, &quot;hooks&quot;: { &quot;torrent-done&quot;: &quot;run.sh&quot; } }
+</code></pre>
+<pre><code class="language-sh">#!/bin/sh
+printf '%s,&quot;%s&quot;,%s\n' &quot;$TR_TIME_LOCALTIME&quot; &quot;$TR_TORRENT_NAME&quot; &quot;$TR_TORRENT_BYTES_DOWNLOADED&quot; &gt;&gt; &quot;$HOME/Downloads/Torrie history.csv&quot;
+</code></pre>
+<p><strong>Remove torrents once they've seeded enough</strong>, keeping the files. Needs Settings → General → Stop seeding at ratio, and Settings → Network → Remote control.</p>
+<pre><code class="language-json">{ &quot;name&quot;: &quot;Clean up&quot;, &quot;hooks&quot;: { &quot;torrent-done-seeding&quot;: &quot;run.sh&quot; } }
+</code></pre>
+<pre><code class="language-sh">#!/bin/sh
+curl -s &quot;$TORRIE_RPC_URL&quot; -H 'Content-Type: application/json' \
+  -d &quot;{\&quot;jsonrpc\&quot;:\&quot;2.0\&quot;,\&quot;id\&quot;:1,\&quot;method\&quot;:\&quot;torrents.remove\&quot;,\&quot;params\&quot;:{\&quot;ids\&quot;:\&quot;$TR_TORRENT_HASH\&quot;}}&quot;
+</code></pre>
+</section>
+  </main>
+  <!-- /docs -->
+</div>
+
+<footer>
+  <div class="wrap">
+    <p>Open source under the MIT license. Copyright 2026 <a href="https://kronz.xyz">Kronz</a>. Source on <a href="https://github.com/kronzhq/torrie">GitHub</a>.</p>
+  </div>
+</footer>
+</body>
+</html>
