@@ -1,0 +1,9 @@
+// Static hosting for torrie.download on Cloudflare Workers. Deploy: cd site && bunx wrangler deploy
+// (rebuilds docs.html from docs/*.md first).
+{
+  "name": "torrie-site",
+  "compatibility_date": "2026-10-01",
+  "build": { "command": "uv run build.py" },
+  "assets": { "directory": "." },
+  "routes": [{ "pattern": "torrie.download", "custom_domain": true }]
+}

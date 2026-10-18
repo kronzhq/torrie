@@ -14,7 +14,7 @@ import markdown
 
 SITE = Path(__file__).parent
 PAGES = ["README.md", "remote-control.md", "plugins.md"]
-REPO = "https://github.com/kronzhq/torrie/blob/master/site/docs/"
+REPO = "https://github.com/kronzhq/torrie/blob/main/site/docs/"
 
 nav, sections, anchors = [], [], {}
 for page in PAGES:

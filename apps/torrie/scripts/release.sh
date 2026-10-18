@@ -6,6 +6,7 @@
 #
 #   apps/torrie/scripts/release.sh                  # full release
 #   NOTES=$'Faster lists\nFixes…' …release.sh       # shown under "What's new" in the update window
+#   REPLACE=1 …release.sh                           # re-release the live version (copies already on it don't update)
 #
 # Nothing about the developer account lives in this repo. One-time setup on the release Mac:
 #   1. ~/.release.env (chmod 600; ENV_FILE overrides) exporting the Apple account: APPLE_SIGNING_IDENTITY (from
@@ -42,7 +43,7 @@ for t in aarch64-apple-darwin x86_64-apple-darwin; do
   rustup target list --installed | grep -qx "$t" || die "missing Rust target $t (rustup target add $t)"
 done
 LIVE=$(curl -sf "$SITE/latest.json?$(date +%s)" | sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' || true)
-[ "$LIVE" != "$V" ] || die "$V is already live. Bump the version in Cargo.toml."
+[ "$LIVE" != "$V" ] || [ -n "${REPLACE:-}" ] || die "$V is already live. Bump the version in Cargo.toml."
 echo "Releasing Torrie $V (live now: ${LIVE:-none})"
 read -r -p "Continue? [y/N] " ok
 [ "$ok" = y ] || exit 1

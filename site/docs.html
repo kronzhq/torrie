@@ -82,7 +82,7 @@
 <li><a href="#remote-control">Remote control</a>: the web remote, Torrie's API and the Transmission protocol.</li>
 <li><a href="#plugins">Plugins</a>: hooks, plugin processes, packages and recipes.</li>
 </ul>
-<!-- These files are also the website's docs page (site/docs.html renders them), so edit them here. -->
+<!-- These files are also the website's docs page: after editing, run `uv run site/build.py` to rebuild site/docs.html. -->
 </section>
 <section>
 <h1 id="remote-control">Remote control</h1>
@@ -120,7 +120,7 @@
 <li><code>settings.json</code> is saved readable by you only.</li>
 </ul>
 <h2 id="torrie-api">Torrie API</h2>
-<p><a href="https://www.jsonrpc.org/specification">JSON-RPC 2.0</a> at <code>http://127.0.0.1:9091/torrie/rpc</code>, described in <a href="https://github.com/kronzhq/torrie/blob/master/apps/torrie/openrpc.json"><code>openrpc.json</code></a>, which <code>rpc.discover</code> also returns. Torrents are named by <code>ids</code>: an id, an info hash, or a list of them. Hooks get its URL as <code>TORRIE_RPC_URL</code>; plugin processes call the same methods directly.</p>
+<p><a href="https://www.jsonrpc.org/specification">JSON-RPC 2.0</a> at <code>http://127.0.0.1:9091/torrie/rpc</code>, described in <a href="https://github.com/kronzhq/torrie/blob/main/apps/torrie/openrpc.json"><code>openrpc.json</code></a>, which <code>rpc.discover</code> also returns. Torrents are named by <code>ids</code>: an id, an info hash, or a list of them. Hooks get its URL as <code>TORRIE_RPC_URL</code>; plugin processes call the same methods directly.</p>
 <table>
 <thead>
 <tr>

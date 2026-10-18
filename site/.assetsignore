@@ -1,0 +1,6 @@
+wrangler.jsonc
+.assetsignore
+build.py
+docs
+.wrangler
+.DS_Store
