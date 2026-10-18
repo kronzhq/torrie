@@ -27,6 +27,7 @@
     <a class="brand" href="#"><img src="icon.png" alt="">Torrie</a>
     <nav>
       <a href="#features">Features</a>
+      <a href="#screenshots">Screenshots</a>
       <a href="#remote">Remote</a>
       <a href="#plugins">Plugins</a>
       <a href="#faq">FAQ</a>
@@ -139,6 +140,19 @@
   </div>
 </section>
 
+<section id="screenshots">
+  <div class="wrap">
+    <h2>See it in action</h2>
+    <p class="lead">Every transfer at a glance, with the Inspector one click away.</p>
+    <div class="shots">
+      <img class="wide" src="screenshots/main.png" width="2464" height="1624" loading="lazy" alt="Torrie downloading Big Buck Bunny with the Inspector showing pieces and peers">
+      <img src="screenshots/downloading.png" width="2464" height="1624" loading="lazy" alt="A download in progress in the Dark theme">
+      <img src="screenshots/seeding.png" width="2464" height="1624" loading="lazy" alt="A paused and a seeding transfer, with the Inspector overview">
+      <img src="screenshots/empty.png" width="2332" height="1492" loading="lazy" alt="The empty library, ready for a torrent or magnet link">
+    </div>
+  </div>
+</section>
+
 <section id="remote">
   <div class="wrap split">
     <div>
@@ -150,12 +164,15 @@
         <li><span>Open <code>http://&lt;your Mac's IP&gt;:9091</code> in any browser and sign in with the password shown in Settings.</span></li>
       </ol>
       <div class="chips"><span>Web remote</span><span>JSON-RPC</span></div>
-      <p style="color:var(--muted);font-size:14px;margin-bottom:0">Away from home? Reach it over a VPN: the password travels unencrypted. <a href="docs.html#remote-control">API docs →</a></p>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:0">Away from home? Reach it over a VPN. <a href="docs.html#remote-control">API docs →</a></p>
     </div>
-    <pre><span class="k">Host</span>              <span class="s">192.168.1.20</span>
+    <div class="remote-side">
+      <img class="phone" src="screenshots/web-remote.jpg" width="712" height="1600" loading="lazy" alt="Torrie's web remote in a phone browser, showing a paused and a seeding transfer">
+      <pre><span class="k">Host</span>              <span class="s">192.168.1.20</span>
 <span class="k">Port</span>              <span class="s">9091</span>
 <span class="k">Username</span>          <span class="s">anything</span>
 <span class="k">Password</span>          <span class="s">shown in Torrie's Settings</span></pre>
+    </div>
   </div>
 </section>
 
@@ -212,10 +229,18 @@
   </div>
 </footer>
 
+<dialog class="lightbox">
+  <img alt="">
+  <button class="lb-close" aria-label="Close">&times;</button>
+  <button class="lb-prev" aria-label="Previous screenshot">&lsaquo;</button>
+  <button class="lb-next" aria-label="Next screenshot">&rsaquo;</button>
+  <span class="lb-count"></span>
+</dialog>
+
 <script>
   // Reveal sections as they scroll in, staggering cards in each row.
   const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && (e.target.classList.add('in'), io.unobserve(e.target))), { rootMargin: '0px 0px -8% 0px' });
-  document.querySelectorAll('section h2, section .lead, .card, .split > *, table, .cta img, .cta .btn').forEach(el => {
+  document.querySelectorAll('section h2, section .lead, .card, .shots img, .split > *, table, .cta img, .cta .btn').forEach(el => {
     if (el.matches('.card')) el.style.setProperty('--i', [...el.parentNode.children].indexOf(el) % 3);
     el.classList.add('reveal');
     io.observe(el);
@@ -285,6 +310,24 @@
     document.querySelectorAll('[data-total]').forEach((b, i) => b.textContent = hist.at(-1)[i].toFixed(1));
     draw();
   }, 1000);
+
+  // Screenshot lightbox: arrows, arrow keys or swipe to browse; Esc, × or the backdrop to close.
+  const box = document.querySelector('.lightbox'), big = box.querySelector('img');
+  const pics = [...document.querySelectorAll('.shots img, .phone')];
+  let at = 0, touchX = 0;
+  const show = i => {
+    at = (i + pics.length) % pics.length;
+    big.src = pics[at].src; big.alt = pics[at].alt;
+    box.querySelector('.lb-count').textContent = `${at + 1} / ${pics.length}`;
+  };
+  pics.forEach((p, i) => p.addEventListener('click', () => { show(i); box.showModal(); }));
+  box.querySelector('.lb-prev').onclick = () => show(at - 1);
+  box.querySelector('.lb-next').onclick = () => show(at + 1);
+  box.querySelector('.lb-close').onclick = () => box.close();
+  box.addEventListener('click', e => e.target == box && box.close());
+  box.addEventListener('keydown', e => e.key == 'ArrowLeft' ? show(at - 1) : e.key == 'ArrowRight' && show(at + 1));
+  box.addEventListener('touchstart', e => touchX = e.touches[0].clientX, { passive: true });
+  box.addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - touchX; Math.abs(dx) > 40 && show(at + (dx < 0 ? 1 : -1)); });
 </script>
 </body>
 </html>

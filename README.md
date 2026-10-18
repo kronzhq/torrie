@@ -14,6 +14,10 @@
   macOS 12+ · <a href="LICENSE">MIT</a>
 </p>
 
+<p align="center">
+  <img src="site/screenshots/main.png" alt="Torrie downloading a torrent with the Inspector open">
+</p>
+
 ---
 
 ## Features
@@ -28,9 +32,18 @@
 - **Web remote**: manage downloads from any browser on your phone or another computer ([how](#remote-control))
 - **Remote control**: an API for your own apps and scripts ([guide](site/docs/remote-control.md))
 - **Updates itself**, and only installs notarized builds signed by the same developer
-- DHT, UPnP, stop seeding at a ratio, fast resume, light and dark mode
+- **16 themes**: Catppuccin, Dracula, Gruvbox, Nord, Rosé Pine, Solarized, Tokyo Night and more, with separate light and dark picks that follow macOS
+- DHT, UPnP, stop seeding at a ratio, fast resume
+
+## Screenshots
+
+| | | |
+|---|---|---|
+| ![Downloading with the Inspector open](site/screenshots/downloading.png) | ![Seeding and paused transfers](site/screenshots/seeding.png) | ![Empty library](site/screenshots/empty.png) |
 
 ## Remote control
+
+<img src="site/screenshots/web-remote.jpg" width="240" align="right" alt="Web remote on a phone">
 
 Control Torrie from your phone, another computer, or your own apps and scripts.
 
