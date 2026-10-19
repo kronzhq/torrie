@@ -557,7 +557,7 @@ for line in sys.stdin:  # ends when Torrie quits
 <li>Plugins run as you, with your files and network, so only switch on ones you trust.</li>
 </ul>
 <h2 id="bundled-plugins">Bundled plugins</h2>
-<p>Torrie ships two plugins. <code>notify</code> posts a "Download Complete" notification; it's on by default. Copy it to start your own. <code>shortcuts</code> runs a Shortcut from the Shortcuts app on each finished download, with the download's file or folder as its input, so a Shortcut can move it to a NAS, add it to the TV app or message someone. It's off until you name a Shortcut in Settings → Plugins and switch it on.</p>
+<p>Torrie ships two plugins. <code>notify</code> posts a "Download Complete" notification; it's on by default. Torrie posts it itself, so macOS lists it under Torrie in System Settings → Notifications. <code>shortcuts</code> runs a Shortcut from the Shortcuts app on each finished download, with the download's file or folder as its input, so a Shortcut can move it to a NAS, add it to the TV app or message someone. It's off until you name a Shortcut in Settings → Plugins and switch it on.</p>
 <h2 id="recipes">Recipes</h2>
 <p>Each recipe is a folder in <code>plugins/</code> with these two files. <code>chmod +x</code> the script, then click Reload and switch the plugin on in Settings → Plugins. <code>$TR_TORRENT_DIR/$TR_TORRENT_NAME</code> is the downloaded file or folder.</p>
 <p><strong>Copy finished downloads to another drive.</strong> Copies rather than moves, so the torrent keeps seeding.</p>

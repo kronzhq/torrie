@@ -1,8 +1,12 @@
-//! macOS integration: the menu bar item and opening at login.
+//! macOS integration: the menu bar item, opening at login and notifications.
 
 use gpui::{App, DisplayId, Global, Pixels, Point, point, px};
 use objc2::MainThreadMarker;
-use objc2_foundation::NSString;
+use objc2_foundation::{NSBundle, NSError, NSString};
+use objc2_user_notifications::{
+    UNAuthorizationOptions, UNMutableNotificationContent, UNNotificationRequest,
+    UNUserNotificationCenter,
+};
 use tokio::sync::mpsc::UnboundedSender;
 use tray_icon::{Icon, MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 
@@ -147,4 +151,34 @@ fn login_item(on: bool) -> std::io::Result<()> {
 "#
         ),
     )
+}
+
+/// Posts a notification as Torrie; `id` replaces an earlier one with the same id. Asks permission the first time
+/// (macOS remembers the answer). An unbundled build (`cargo run`) has no identity to post as, so it only logs.
+pub fn notify(id: &str, title: &str, body: &str) {
+    objc2::rc::autoreleasepool(|_| {
+        if NSBundle::mainBundle().bundleIdentifier().is_none() {
+            eprintln!("Torrie: {title}: {body} (notifications need the app bundle)");
+            return;
+        }
+        let content = UNMutableNotificationContent::new();
+        content.setTitle(&NSString::from_str(title));
+        content.setBody(&NSString::from_str(body));
+        let request = UNNotificationRequest::requestWithIdentifier_content_trigger(
+            &NSString::from_str(id),
+            &content,
+            None,
+        );
+        let center = UNUserNotificationCenter::currentNotificationCenter();
+        let post = block2::RcBlock::new(move |granted: objc2::runtime::Bool, _: *mut NSError| {
+            if granted.as_bool() {
+                UNUserNotificationCenter::currentNotificationCenter()
+                    .addNotificationRequest_withCompletionHandler(&request, None);
+            }
+        });
+        center.requestAuthorizationWithOptions_completionHandler(
+            UNAuthorizationOptions::Alert,
+            &post,
+        );
+    });
 }

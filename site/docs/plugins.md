@@ -157,7 +157,7 @@ The `url` must be https, and the package at most 50 MB. GitHub's source zips wor
 
 ## Bundled plugins
 
-Torrie ships two plugins. `notify` posts a "Download Complete" notification; it's on by default. Copy it to start your own. `shortcuts` runs a Shortcut from the Shortcuts app on each finished download, with the download's file or folder as its input, so a Shortcut can move it to a NAS, add it to the TV app or message someone. It's off until you name a Shortcut in Settings → Plugins and switch it on.
+Torrie ships two plugins. `notify` posts a "Download Complete" notification; it's on by default. Torrie posts it itself, so macOS lists it under Torrie in System Settings → Notifications. `shortcuts` runs a Shortcut from the Shortcuts app on each finished download, with the download's file or folder as its input, so a Shortcut can move it to a NAS, add it to the TV app or message someone. It's off until you name a Shortcut in Settings → Plugins and switch it on.
 
 ## Recipes
 

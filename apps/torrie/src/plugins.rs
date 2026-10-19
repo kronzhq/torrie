@@ -68,15 +68,15 @@ const MAX_PACKAGE: u64 = 50 << 20;
 const NOTIFY_JSON: &str = r#"{
   "id": "notify",
   "name": "Notify",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Shows a notification when a download finishes",
-  "author": "Torrie",
-  "hooks": { "torrent-done": "notify.sh" },
-  "timeout": 10
+  "author": "Torrie"
 }
 "#;
 
-const NOTIFY_SH: &str = r#"#!/bin/sh
+/// Notify's hook before Torrie posted the notification itself: macOS credits osascript's notifications to Script
+/// Editor, and drops them unless Script Editor may notify. [`seed`] switches unedited copies over.
+const OLD_NOTIFY_SH: &str = r#"#!/bin/sh
 # Torrie's bundled plugin, and an example to copy. See README "Plugins" for every variable.
 exec osascript -e 'on run argv' -e 'display notification (item 1 of argv) with title "Download Complete"' -e 'end run' "$TR_TORRENT_NAME"
 "#;
@@ -205,43 +205,56 @@ fn log_path(id: &str) -> PathBuf {
     dir().join(format!("{id}.log"))
 }
 
-/// Plugins Torrie ships: folder, manifest, hook file name and hook. Only [`BUNDLED`] starts on.
-const SEEDED: [(&str, &str, &str, &str); 2] = [
-    (BUNDLED, NOTIFY_JSON, "notify.sh", NOTIFY_SH),
+/// Plugins Torrie ships: folder, manifest, and hook file name and hook if any. Only [`BUNDLED`] starts on; it has
+/// no hook, Torrie posts its notification (see [`run`]).
+const SEEDED: [(&str, &str, Option<(&str, &str)>); 2] = [
+    (BUNDLED, NOTIFY_JSON, None),
     (
         "shortcuts",
         include_str!("../assets/plugins/shortcuts/plugin.json"),
-        "shortcuts.sh",
-        include_str!("../assets/plugins/shortcuts/shortcuts.sh"),
+        Some((
+            "shortcuts.sh",
+            include_str!("../assets/plugins/shortcuts/shortcuts.sh"),
+        )),
     ),
 ];
 
 /// Adds each shipped plugin once, so ones added in an update appear and ones you delete stay gone.
 /// `plugins/.seeded` lists the ids already added.
 pub fn seed() {
+    let old = dir().join(BUNDLED).join("notify.sh");
+    if std::fs::read_to_string(&old).is_ok_and(|s| s == OLD_NOTIFY_SH)
+        && std::fs::write(dir().join(BUNDLED).join("plugin.json"), NOTIFY_JSON).is_ok()
+    {
+        _ = std::fs::remove_file(old);
+    }
     let marker = dir().join(".seeded");
     let seeded = std::fs::read_to_string(&marker).unwrap_or_default();
-    for (id, json, file, script) in SEEDED {
+    for (id, json, hook) in SEEDED {
         if seeded.lines().any(|l| l == id) {
             continue;
         }
         let plugin = dir().join(id);
-        let main = plugin.join(file);
         // Installs from before the marker already have theirs; leave any edits alone.
         let write = || {
             std::fs::create_dir_all(&plugin)?;
             std::fs::write(plugin.join("plugin.json"), json)?;
-            std::fs::write(&main, script)?;
-            std::fs::set_permissions(&main, std::fs::Permissions::from_mode(0o755))
+            if let Some((file, script)) = hook {
+                std::fs::write(plugin.join(file), script)?;
+                std::fs::set_permissions(
+                    plugin.join(file),
+                    std::fs::Permissions::from_mode(0o755),
+                )?;
+            }
+            Ok::<_, std::io::Error>(())
         };
-        let res = (if plugin.exists() { Ok(()) } else { write() })
-            .and_then(|_| {
-                std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(&marker)?
-                    .write_all(format!("{id}\n").as_bytes())
-            });
+        let res = (if plugin.exists() { Ok(()) } else { write() }).and_then(|_| {
+            std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&marker)?
+                .write_all(format!("{id}\n").as_bytes())
+        });
         if let Err(e) = res {
             eprintln!("Torrie: seeding plugins: {e}");
         }
@@ -423,10 +436,22 @@ pub fn run(event: &'static str, id: usize, h: &ManagedTorrent, s: &Settings) {
         "event",
         json!({ "event": event, "torrent": crate::rpc::torrent_json(&Row::new(id, h), h) }),
     );
-    let hooks: Vec<_> = list()
+    let enabled: Vec<_> = list()
         .into_iter()
         .filter_map(|(_, p)| p.ok())
         .filter(|p| s.plugins_enabled.contains(&p.id))
+        .collect();
+    // A notify edited to have its own hook or process posts its own.
+    if event == DONE
+        && enabled
+            .iter()
+            .any(|p| p.id == BUNDLED && p.hooks.is_empty() && p.main.is_none())
+    {
+        let name = h.name().unwrap_or_else(|| h.info_hash().as_string());
+        crate::macos::notify(&h.info_hash().as_string(), "Download Complete", &name);
+    }
+    let hooks: Vec<_> = enabled
+        .into_iter()
         .filter_map(|p| {
             Some((
                 command(p.hooks.get(event)?, &p, s),
@@ -1123,16 +1148,21 @@ mod tests {
     #[test]
     fn shipped_plugins_load() {
         let root = temp("plugin-seeded");
-        for (id, json, file, script) in SEEDED {
+        for (id, json, hook) in SEEDED {
             std::fs::create_dir_all(root.join(id)).unwrap();
             std::fs::write(root.join(id).join("plugin.json"), json).unwrap();
-            std::fs::write(root.join(id).join(file), script).unwrap();
-            std::fs::set_permissions(
-                root.join(id).join(file),
-                std::fs::Permissions::from_mode(0o755),
-            )
-            .unwrap();
-            assert_eq!(load(id.into(), &root.join(id)).unwrap().manifest.id, id);
+            if let Some((file, script)) = hook {
+                std::fs::write(root.join(id).join(file), script).unwrap();
+                std::fs::set_permissions(
+                    root.join(id).join(file),
+                    std::fs::Permissions::from_mode(0o755),
+                )
+                .unwrap();
+            }
+            let p = load(id.into(), &root.join(id)).unwrap();
+            assert_eq!(p.manifest.id, id);
+            // Torrie posts notify's notification only while it has neither.
+            assert_eq!(id == BUNDLED, p.hooks.is_empty() && p.main.is_none());
         }
         std::fs::remove_dir_all(&root).unwrap();
     }
