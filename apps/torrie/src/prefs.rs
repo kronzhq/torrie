@@ -1244,7 +1244,7 @@ fn theme_card(name: &str, preview: Div, on: bool, t: &Theme) -> Stateful<Div> {
                         .child(icon("check", px(12.), t.accent))
                 })
                 .when(!on, |d| d.text_color(t.muted))
-                .child(name.to_owned()),
+                .child(div().min_w_0().truncate().child(name.to_owned())),
         )
 }
 

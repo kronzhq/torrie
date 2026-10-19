@@ -1235,6 +1235,7 @@ impl MainWindow {
                             .text_size(px(13.))
                             .font_weight(FontWeight::SEMIBOLD)
                             .line_clamp(2)
+                            .text_ellipsis()
                             .child(r.name.clone()),
                     )
                     .child(
@@ -1503,7 +1504,8 @@ impl MainWindow {
                             .collect::<Vec<_>>()
                     }),
                 )
-                .flex_1(),
+                .flex_1()
+                .w_full(),
             )
     }
 
@@ -1532,6 +1534,7 @@ impl MainWindow {
             f.done as f32 / f.len as f32
         };
         div()
+            .w_full()
             .flex()
             .gap_2()
             .py_2()
@@ -1556,7 +1559,30 @@ impl MainWindow {
                     .flex_col()
                     .gap_1()
                     .when(!wanted, |el| el.opacity(0.5))
-                    .child(div().truncate().child(name))
+                    // Play sits beside the name, not in its own column, so every row's bar runs full width.
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_1()
+                            .child(div().flex_1().min_w_0().truncate().child(name))
+                            .when_some(play, |el, name| {
+                                el.child(
+                                    icon_button(("play-file", index), "play", t)
+                                        .size(px(22.))
+                                        // Overhangs the text line so rows with and without it stay the same height.
+                                        .my(px(-4.))
+                                        .tooltip(tip("Play while downloading"))
+                                        .on_click(cx.listener(move |this, _, _, cx| {
+                                            if !wanted {
+                                                this.engine.set_file_wanted(id, index, true);
+                                            }
+                                            this.engine.play(id, index, &name);
+                                            cx.notify();
+                                        })),
+                                )
+                            }),
+                    )
                     // Always there, at a fixed height, so every row is as tall as the list assumes.
                     .child(
                         div()
@@ -1583,19 +1609,6 @@ impl MainWindow {
                             .child(pct(frac)),
                     ),
             )
-            .when_some(play, |el, name| {
-                el.child(
-                    icon_button(("play-file", index), "play", t)
-                        .tooltip(tip("Play while downloading"))
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            if !wanted {
-                                this.engine.set_file_wanted(id, index, true);
-                            }
-                            this.engine.play(id, index, &name);
-                            cx.notify();
-                        })),
-                )
-            })
     }
 
     fn peers(&self, d: &Details, t: &Theme) -> Div {
