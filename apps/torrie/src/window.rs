@@ -19,7 +19,7 @@ use librqbit::AddTorrent;
 use serde_json::{Value, json};
 
 use crate::{
-    engine::{Details, Engine, FileRow},
+    engine::{Details, Engine, FileRow, Settings},
     format::*,
     plugins::{self, Block},
     theme::{self, *},
@@ -567,12 +567,13 @@ impl MainWindow {
             .iter()
             .any(|p| url.starts_with(p))
         {
+            let s = self.engine.settings();
             self.engine.add(
                 AddTorrent::from_url(url.to_owned()),
                 url_name(url),
                 None,
-                false,
-                true,
+                !s.start_added,
+                s.add_window,
             );
         } else {
             self.engine
@@ -588,8 +589,14 @@ impl MainWindow {
                     .unwrap_or_default()
                     .to_string_lossy()
                     .into_owned();
-                self.engine
-                    .add(AddTorrent::from_bytes(bytes), name, None, false, true)
+                let s = self.engine.settings();
+                self.engine.add(
+                    AddTorrent::from_bytes(bytes),
+                    name,
+                    None,
+                    !s.start_added,
+                    s.add_window,
+                )
             }
             Err(e) => self.engine.report(format!("{}: {e}", path.display())),
         }
@@ -1208,7 +1215,7 @@ impl MainWindow {
             Tab::Overview => self.overview(r, d, t, cx),
             Tab::Files => self.files(r, d, t, cx),
             Tab::Peers => self.peers(d, t),
-            Tab::Trackers => trackers(d, t),
+            Tab::Trackers => trackers(d, &self.engine.settings(), t),
             Tab::Panel(i) => self.panel(i, r, t, cx),
         };
         let tabs = self.tabs();
@@ -1680,7 +1687,7 @@ impl MainWindow {
     }
 }
 
-fn trackers(d: &Details, t: &Theme) -> Div {
+fn trackers(d: &Details, s: &Settings, t: &Theme) -> Div {
     let list = div().flex().flex_col().children(d.trackers.iter().map(|u| {
         let host = url::Url::parse(u)
             .ok()
@@ -1719,7 +1726,12 @@ fn trackers(d: &Details, t: &Theme) -> Div {
                 .pt_3()
                 .text_size(px(10.5))
                 .text_color(t.faint)
-                .child("DHT and local peer discovery are always on."),
+                .child(match (s.dht, s.lsd) {
+                    (true, true) => "DHT and local peer discovery are on.",
+                    (true, false) => "DHT is on; local peer discovery is off.",
+                    (false, true) => "DHT is off; local peer discovery is on.",
+                    (false, false) => "DHT and local peer discovery are off.",
+                }),
         )
 }
 

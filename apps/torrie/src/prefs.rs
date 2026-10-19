@@ -1,6 +1,6 @@
 //! Settings window. Every change is applied and saved immediately.
 
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use gpui::{
     AnyElement, ClipboardItem, Context, Div, ElementId, FocusHandle, FontWeight, Hsla,
@@ -132,6 +132,8 @@ pub struct Preferences {
     tab_pill: Tween,
     /// System font families while the font list is open.
     fonts: Option<Vec<SharedString>>,
+    /// Whether Torrie opens magnet links and .torrent files (None when unbundled); read on open and on change.
+    default_app: Option<bool>,
     _subs: Vec<Subscription>,
 }
 
@@ -175,6 +177,7 @@ impl Preferences {
             tab,
             tab_pill: Tween::new(tab as f32),
             fonts: None,
+            default_app: crate::macos::is_default_app(),
             _subs,
         }
     }
@@ -182,6 +185,7 @@ impl Preferences {
     pub fn show_tab(&mut self, tab: usize, cx: &mut Context<Self>) {
         self.tab = tab;
         self.plugins = plugins::list();
+        self.default_app = crate::macos::is_default_app();
         cx.notify();
     }
 
@@ -716,7 +720,11 @@ impl Preferences {
                 row(set.title.clone(), detail, t).pl_8().child(
                     button(el_id, "Choose…", t, false).on_click(cx.listener(
                         move |this, _, _, cx| {
-                            this.choose_folder(Some((id.clone(), key.clone())), cx)
+                            let (id, key) = (id.clone(), key.clone());
+                            this.choose_folder(cx, move |this, dir, cx| {
+                                let dir = Value::String(dir.to_string_lossy().into_owned());
+                                this.set_plugin(id, key, dir, cx)
+                            })
                         },
                     )),
                 )
@@ -724,8 +732,12 @@ impl Preferences {
         }
     }
 
-    /// Picks the download folder, or with `plugin` (plugin id, setting key), a plugin's folder setting.
-    fn choose_folder(&mut self, plugin: Option<(String, String)>, cx: &mut Context<Self>) {
+    /// Asks for a folder and hands it to `chosen`.
+    fn choose_folder(
+        &mut self,
+        cx: &mut Context<Self>,
+        chosen: impl FnOnce(&mut Self, PathBuf, &mut Context<Self>) + 'static,
+    ) {
         let paths = cx.prompt_for_paths(PathPromptOptions {
             files: false,
             directories: true,
@@ -736,16 +748,7 @@ impl Preferences {
             if let Ok(Ok(Some(mut paths))) = paths.await
                 && let Some(dir) = paths.pop()
             {
-                this.update(cx, |this, cx| match plugin {
-                    Some((id, key)) => this.set_plugin(
-                        id,
-                        key,
-                        Value::String(dir.to_string_lossy().into_owned()),
-                        cx,
-                    ),
-                    None => this.update(cx, |s| s.download_dir = dir),
-                })
-                .ok();
+                this.update(cx, |this, cx| chosen(this, dir, cx)).ok();
             }
         })
         .detach();
@@ -811,6 +814,18 @@ impl Render for Preferences {
                             |s, v| s.menu_bar_mode = v,
                         )),
                         row(
+                            "Ask before quitting",
+                            "When transfers are still downloading",
+                            &t,
+                        )
+                        .child(self.switch(
+                            "confirm-quit",
+                            s.confirm_quit,
+                            &t,
+                            cx,
+                            |s, v| s.confirm_quit = v,
+                        )),
+                        row(
                             "Check for updates automatically",
                             format!("Torrie {}", env!("CARGO_PKG_VERSION")),
                             &t,
@@ -825,7 +840,29 @@ impl Render for Preferences {
                             cx,
                             |s, v| s.check_updates = v,
                         )),
-                    ],
+                    ]
+                    .into_iter()
+                    .chain(self.default_app.map(|on| {
+                        row(
+                            "Default torrent app",
+                            if on {
+                                "Torrie opens magnet links and .torrent files"
+                            } else {
+                                "Another app opens magnet links and .torrent files"
+                            },
+                            &t,
+                        )
+                        .when(!on, |r| {
+                            r.child(button("default-app", "Make Default", &t, false).on_click(
+                                cx.listener(|this, _, _, cx| {
+                                    crate::macos::make_default_app();
+                                    this.default_app = crate::macos::is_default_app();
+                                    cx.notify();
+                                }),
+                            ))
+                        })
+                    }))
+                    .collect(),
                     &t,
                 )
             };
@@ -834,9 +871,55 @@ impl Render for Preferences {
                 "TRANSFERS",
                 vec![
                     row("Download to", s.download_dir.display().to_string(), &t).child(
-                        button("choose", "Choose…", &t, false)
-                            .on_click(cx.listener(|this, _, _, cx| this.choose_folder(None, cx))),
+                        button("choose", "Choose…", &t, false).on_click(cx.listener(
+                            |this, _, _, cx| {
+                                this.choose_folder(cx, |this, dir, cx| {
+                                    this.update(cx, |s| s.download_dir = dir)
+                                })
+                            },
+                        )),
                     ),
+                    row(
+                        "Choose files before adding",
+                        "Shows the Add window for torrents and magnet links you open",
+                        &t,
+                    )
+                    .child(self.switch(
+                        "add-window",
+                        s.add_window,
+                        &t,
+                        cx,
+                        |s, v| s.add_window = v,
+                    )),
+                    row("Start transfers when added", "Off adds them paused", &t).child(
+                        self.switch("start-added", s.start_added, &t, cx, |s, v| {
+                            s.start_added = v
+                        }),
+                    ),
+                    row(
+                        "Watch folder",
+                        format!("Adds .torrent files saved to {}", s.watch_dir.display()),
+                        &t,
+                    )
+                    .child(
+                        button("watch-choose", "Choose…", &t, false).on_click(cx.listener(
+                            |this, _, _, cx| {
+                                this.choose_folder(cx, |this, dir, cx| {
+                                    this.update(cx, |s| {
+                                        s.watch_dir = dir;
+                                        s.watch_enabled = true;
+                                    })
+                                })
+                            },
+                        )),
+                    )
+                    .child(self.switch(
+                        "watch",
+                        s.watch_enabled,
+                        &t,
+                        cx,
+                        |s, v| s.watch_enabled = v,
+                    )),
                     row("Peers per torrent", "Applies to newly added torrents", &t)
                         .child(self.field(Field::Peers, "", true, &t, cx)),
                     row(
@@ -982,10 +1065,15 @@ impl Render for Preferences {
                     row("Peer listening port", port_detail, &t).child(self.field(
                         Field::Port,
                         "",
-                        true,
+                        !s.random_port,
                         &t,
                         cx,
                     )),
+                    row("Randomize port at launch", "Picks a new one each time", &t).child(
+                        self.switch("random-port", s.random_port, &t, cx, |s, v| {
+                            s.random_port = v
+                        }),
+                    ),
                     row(
                         "Map port with UPnP",
                         "Lets peers reach you through your router",
@@ -998,6 +1086,25 @@ impl Render for Preferences {
                         cx,
                         |s, v| s.port_forwarding = v,
                     )),
+                    row(
+                        "Use µTP",
+                        "Peer connections over UDP that make way for your other traffic",
+                        &t,
+                    )
+                    .child(self.switch("utp", s.utp, &t, cx, |s, v| s.utp = v)),
+                    row("Use DHT", "Finds peers without a tracker", &t).child(self.switch(
+                        "dht",
+                        s.dht,
+                        &t,
+                        cx,
+                        |s, v| s.dht = v,
+                    )),
+                    row(
+                        "Use local peer discovery",
+                        "Finds peers on your own network",
+                        &t,
+                    )
+                    .child(self.switch("lsd", s.lsd, &t, cx, |s, v| s.lsd = v)),
                     row(
                         "Remote control",
                         "Web remote and API for plugins, scripts and other apps",

@@ -108,6 +108,21 @@ pub struct Settings {
     pub keep_awake: bool,
     /// Posts a notification when a download finishes.
     pub notify_done: bool,
+    /// Quitting while anything downloads asks first.
+    pub confirm_quit: bool,
+    /// Torrent files and links opened by hand show the Add window before starting.
+    pub add_window: bool,
+    /// New torrents start right away rather than paused.
+    pub start_added: bool,
+    /// Adds `.torrent` files that appear in `watch_dir` (see [`Engine::add_watched`]).
+    pub watch_enabled: bool,
+    pub watch_dir: PathBuf,
+    /// Picks a new peer port at every launch.
+    pub random_port: bool,
+    /// µTP, DHT and local peer discovery.
+    pub utp: bool,
+    pub dht: bool,
+    pub lsd: bool,
 }
 
 /// Light or dark mode; System follows macOS.
@@ -158,6 +173,15 @@ impl Default for Settings {
             check_updates: true,
             keep_awake: true,
             notify_done: true,
+            confirm_quit: true,
+            add_window: true,
+            start_added: true,
+            watch_enabled: false,
+            watch_dir: home().join("Downloads"),
+            random_port: false,
+            utp: true,
+            dht: true,
+            lsd: true,
         }
     }
 }
@@ -207,13 +231,14 @@ impl Settings {
     }
 
     /// What only applies when Torrie starts.
-    fn network(&self) -> (u16, bool, bool, u16, bool) {
+    fn network(&self) -> (u16, bool, bool, u16, bool, [bool; 4]) {
         (
             self.peer_port,
             self.port_forwarding,
             self.rpc_enabled,
             self.rpc_port,
             self.rpc_lan,
+            [self.random_port, self.utp, self.dht, self.lsd],
         )
     }
 
@@ -395,13 +420,20 @@ pub struct Engine {
     session_dir: PathBuf,
     settings: Arc<Mutex<Settings>>,
     /// Port and RPC settings only apply when the session starts.
-    started_with: (u16, bool, bool, u16, bool),
+    started_with: (u16, bool, bool, u16, bool, [bool; 4]),
 }
 
 impl Engine {
     pub fn start() -> anyhow::Result<Self> {
         let mut settings = Settings::load()?;
-        if plugins::migrate_notify(&plugins::dir(), &mut settings) {
+        let mut changed = plugins::migrate_notify(&plugins::dir(), &mut settings);
+        if settings.random_port {
+            // The dynamic range (49152–65535), which nothing registers.
+            // SAFETY: a plain libc call with no pointers.
+            settings.peer_port = 49152 + unsafe { libc::arc4random_uniform(16384) } as u16;
+            changed = true;
+        }
+        if changed {
             settings.save()?;
         }
         let rt = tokio::runtime::Builder::new_multi_thread()
@@ -641,6 +673,46 @@ impl Engine {
             next: Instant::now(),
             retry_now,
         });
+    }
+
+    /// Adds the `.torrent` files in the watch folder, renaming each to `….torrent.added` so it's only added once.
+    pub fn add_watched(&self) {
+        let s = self.settings();
+        if !s.watch_enabled {
+            return;
+        }
+        let Ok(dir) = std::fs::read_dir(&s.watch_dir) else {
+            return;
+        };
+        let torrents = dir.flatten().map(|e| e.path()).filter(|p| {
+            p.extension()
+                .is_some_and(|x| x.eq_ignore_ascii_case("torrent"))
+        });
+        for path in torrents {
+            let mut done = path.clone().into_os_string();
+            done.push(".added");
+            // Not renamed means it'd be added again next pass.
+            let bytes =
+                match std::fs::read(&path).and_then(|b| std::fs::rename(&path, &done).map(|_| b)) {
+                    Ok(b) => b,
+                    Err(e) => {
+                        self.report(format!("Watch folder: {}: {e}", path.display()));
+                        continue;
+                    }
+                };
+            let name = path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned();
+            self.add(
+                AddTorrent::from_bytes(bytes),
+                name,
+                None,
+                !s.start_added,
+                false,
+            );
+        }
     }
 
     /// Torrents added with `review` whose metadata has arrived since the last call.
@@ -1066,9 +1138,15 @@ fn options(s: &Settings, port: u16) -> SessionOptions {
         peer_id: Some(generate_azereus_style(*b"TO", (0, 1, 0, 0))),
         client_name_and_version: Some(format!("Torrie {}", env!("CARGO_PKG_VERSION"))),
         peer_limit: Some(s.peer_limit_per_torrent),
+        dht: s.dht.then(Default::default),
+        disable_local_service_discovery: !s.lsd,
         listen: Some(ListenerOptions {
-            // librqbit still calls uTP not stable; drop back to TcpOnly if it misbehaves.
-            mode: ListenerMode::TcpAndUtp,
+            // librqbit still calls uTP not stable, hence the switch.
+            mode: if s.utp {
+                ListenerMode::TcpAndUtp
+            } else {
+                ListenerMode::TcpOnly
+            },
             listen_addr: SocketAddr::from((Ipv6Addr::UNSPECIFIED, port)),
             enable_upnp_port_forwarding: s.port_forwarding,
             ..Default::default()

@@ -14,11 +14,12 @@ mod window;
 use std::{
     rc::Rc,
     sync::{Arc, mpsc},
+    time::Duration,
 };
 
 use gpui::{
-    App, Application, Bounds, KeyBinding, Menu, MenuItem, SystemMenuType, TitlebarOptions,
-    WindowBounds, WindowOptions, point, prelude::*, px, size,
+    App, Application, Bounds, KeyBinding, Menu, MenuItem, PromptLevel, SystemMenuType,
+    TitlebarOptions, WindowBounds, WindowOptions, point, prelude::*, px, size,
 };
 
 use window::*;
@@ -148,6 +149,48 @@ fn set_menus(cx: &mut App) {
     ]);
 }
 
+/// Quits, first asking in the main window if anything is downloading and Settings say to.
+fn quit(engine: &Arc<Engine>, urls: &Rc<mpsc::Receiver<String>>, cx: &mut App) {
+    let downloading = (engine.rows().iter())
+        .filter(|r| r.state == format::State::Downloading)
+        .count();
+    if !engine.settings().confirm_quit || downloading == 0 {
+        return cx.quit();
+    }
+    open_main(engine, urls, cx);
+    let answer = cx
+        .windows()
+        .into_iter()
+        .find_map(|w| w.downcast::<MainWindow>())
+        .and_then(|w| {
+            w.update(cx, |_, window, cx| {
+                let detail = match downloading {
+                    1 => "1 transfer is still downloading.".into(),
+                    n => format!("{n} transfers are still downloading."),
+                };
+                window.prompt(
+                    PromptLevel::Warning,
+                    "Quit Torrie?",
+                    Some(&format!(
+                        "{detail} They pick up where they left off next time."
+                    )),
+                    &["Quit", "Cancel"],
+                    cx,
+                )
+            })
+            .ok()
+        });
+    let Some(answer) = answer else {
+        return cx.quit();
+    };
+    cx.spawn(async move |cx| {
+        if answer.await == Ok(0) {
+            _ = cx.update(|cx| cx.quit());
+        }
+    })
+    .detach();
+}
+
 /// Brings the main window forward, reopening it if it was closed.
 fn open_main(engine: &Arc<Engine>, urls: &Rc<mpsc::Receiver<String>>, cx: &mut App) {
     cx.activate(true);
@@ -179,6 +222,13 @@ fn main() {
     };
 
     rpc::start(&engine);
+    let e = engine.clone();
+    std::thread::spawn(move || {
+        loop {
+            e.add_watched();
+            std::thread::sleep(Duration::from_secs(5));
+        }
+    });
 
     // Finder double-clicks and browser magnet links can arrive before the window exists, so buffer them.
     let (tx, rx) = mpsc::channel();
@@ -211,7 +261,8 @@ fn main() {
             }
         })
         .detach();
-        cx.on_action(|_: &Quit, cx| cx.quit());
+        let (e, u) = (engine.clone(), urls.clone());
+        cx.on_action(move |_: &Quit, cx| quit(&e, &u, cx));
         cx.on_action(|_: &About, cx| open_about(cx));
         let e = engine.clone();
         cx.on_action(move |_: &OpenSettings, cx| open_settings(&e, None, cx));

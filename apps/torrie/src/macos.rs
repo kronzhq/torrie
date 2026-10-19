@@ -1,7 +1,7 @@
-//! macOS integration: the menu bar item, opening at login and notifications.
+//! macOS integration: the menu bar item, opening at login, notifications and the default torrent app.
 
 use gpui::{App, DisplayId, Global, Pixels, Point, point, px};
-use objc2::MainThreadMarker;
+use objc2::{MainThreadMarker, rc::Retained};
 use objc2_foundation::{NSBundle, NSError, NSString};
 use objc2_user_notifications::{
     UNAuthorizationOptions, UNMutableNotificationContent, UNNotificationRequest,
@@ -181,4 +181,57 @@ pub fn notify(id: &str, title: &str, body: &str) {
             &post,
         );
     });
+}
+
+#[link(name = "CoreServices", kind = "framework")]
+unsafe extern "C" {
+    // CFStringRefs, toll-free bridged with NSString; the Copy functions return them +1.
+    fn LSCopyDefaultHandlerForURLScheme(scheme: &NSString) -> *mut NSString;
+    fn LSCopyDefaultRoleHandlerForContentType(uti: &NSString, role: u32) -> *mut NSString;
+    fn LSSetDefaultHandlerForURLScheme(scheme: &NSString, bundle_id: &NSString) -> i32;
+    fn LSSetDefaultRoleHandlerForContentType(
+        uti: &NSString,
+        role: u32,
+        bundle_id: &NSString,
+    ) -> i32;
+}
+
+/// `kLSRolesAll`.
+const ROLES_ALL: u32 = 0xFFFF_FFFF;
+/// Declared in Info.plist.
+const TORRENT_UTI: &str = "org.bittorrent.torrent";
+
+/// Whether Torrie opens magnet links and .torrent files; None for an unbundled build (`cargo run`).
+pub fn is_default_app() -> Option<bool> {
+    let id = NSBundle::mainBundle().bundleIdentifier()?;
+    let is_us = |handler: *mut NSString| {
+        unsafe { Retained::from_raw(handler) }
+            .is_some_and(|h| h.to_string().eq_ignore_ascii_case(&id.to_string()))
+    };
+    unsafe {
+        Some(
+            is_us(LSCopyDefaultHandlerForURLScheme(&NSString::from_str(
+                "magnet",
+            ))) && is_us(LSCopyDefaultRoleHandlerForContentType(
+                &NSString::from_str(TORRENT_UTI),
+                ROLES_ALL,
+            )),
+        )
+    }
+}
+
+/// Makes Torrie open magnet links and .torrent files.
+pub fn make_default_app() {
+    let Some(id) = NSBundle::mainBundle().bundleIdentifier() else {
+        return;
+    };
+    let errors = unsafe {
+        [
+            LSSetDefaultHandlerForURLScheme(&NSString::from_str("magnet"), &id),
+            LSSetDefaultRoleHandlerForContentType(&NSString::from_str(TORRENT_UTI), ROLES_ALL, &id),
+        ]
+    };
+    if errors.iter().any(|&e| e != 0) {
+        eprintln!("Torrie: making Torrie the default app: {errors:?}");
+    }
 }
