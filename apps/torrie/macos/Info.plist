@@ -30,6 +30,20 @@
 	<true/>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
+	<!-- Shown in macOS's privacy prompts: downloads can go to any folder or drive, and port forwarding,
+	     peers on this network and the web remote are local network traffic -->
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Torrie saves your downloads here.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Torrie saves your downloads to the folder you chose.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Torrie saves your downloads to the folder you chose.</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Torrie saves your downloads to the drive you chose.</string>
+	<key>NSNetworkVolumesUsageDescription</key>
+	<string>Torrie saves your downloads to the drive you chose.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Torrie forwards its port on your router, connects to peers on your network, and serves the web remote.</string>
 	<!-- .torrent files and magnet: links; plus Torrie's plugin
 	     packages (.torrieplugin) and install links (torrie://install?url=…) -->
 	<key>CFBundleDocumentTypes</key>
