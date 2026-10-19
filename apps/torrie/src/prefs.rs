@@ -1150,7 +1150,11 @@ impl Render for Preferences {
                 }))
                 .chain(s.rpc_enabled.then(|| {
                     let host = s.rpc_lan.then(lan_ip).flatten();
-                    let url = format!("http://{}:{}", host.as_deref().unwrap_or("localhost"), s.rpc_port);
+                    let url = format!(
+                        "http://{}:{}",
+                        host.as_deref().unwrap_or("localhost"),
+                        s.rpc_port
+                    );
                     let detail = if host.is_some() {
                         format!("{url} in any browser on your network")
                     } else {

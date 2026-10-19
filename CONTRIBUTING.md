@@ -15,7 +15,7 @@ If a plugin is involved, attach its log from `~/Library/Application Support/Torr
 ## Making a change
 
 1. For anything bigger than a small fix, open an issue first so we can agree on the approach.
-2. Fork the repo and branch from `main`.
+2. Fork the repo and branch from `main`. Run `git config core.hooksPath .githooks` once, so commits run `cargo fmt` first.
 3. Build and check from the repo root:
    ```sh
    cargo run

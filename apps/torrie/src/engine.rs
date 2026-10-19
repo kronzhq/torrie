@@ -948,7 +948,9 @@ impl Engine {
             let Some(h) = session.get(TorrentIdOrHash::Id(id)) else {
                 return Ok(());
             };
-            session.delete(TorrentIdOrHash::Id(id), delete_files).await?;
+            session
+                .delete(TorrentIdOrHash::Id(id), delete_files)
+                .await?;
             UPLOADED.lock().unwrap().remove(&h.info_hash().as_string());
             Ok(())
         });
@@ -1306,7 +1308,15 @@ fn uploaded_path() -> PathBuf {
 
 /// Lifetime upload of torrent `hash`, given librqbit's counter `now`.
 pub fn uploaded(hash: &str, now: u64) -> u64 {
-    lifetime(UPLOADED.lock().unwrap().get(hash).copied().unwrap_or_default(), now)
+    lifetime(
+        UPLOADED
+            .lock()
+            .unwrap()
+            .get(hash)
+            .copied()
+            .unwrap_or_default(),
+        now,
+    )
 }
 
 /// A counter below the one last seen has restarted since, after reaching at least `last`.
@@ -1426,7 +1436,11 @@ async fn watch(
         seen.retain(|id| ids.contains(id));
         for (id, h, st) in torrents {
             let hash = h.info_hash().as_string();
-            unsaved |= bank(&mut UPLOADED.lock().unwrap(), hash.clone(), st.uploaded_bytes);
+            unsaved |= bank(
+                &mut UPLOADED.lock().unwrap(),
+                hash.clone(),
+                st.uploaded_bytes,
+            );
             let ratio = if st.total_bytes == 0 {
                 0.0
             } else {
@@ -1492,7 +1506,8 @@ mod tests {
         const N: u32 = 100_000;
         let dir = std::env::temp_dir().join(format!("torrie-bench-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let mut torrent = b"d4:infod6:lengthi16384e4:name5:a.bin12:piece lengthi16384e6:pieces20:".to_vec();
+        let mut torrent =
+            b"d4:infod6:lengthi16384e4:name5:a.bin12:piece lengthi16384e6:pieces20:".to_vec();
         torrent.extend([7u8; 20]);
         torrent.extend(b"ee");
         let opts = SessionOptions {
@@ -1522,7 +1537,10 @@ mod tests {
             for _ in 0..N {
                 f();
             }
-            println!("{label:<34} {:>7.0} ns", t.elapsed().as_nanos() as f64 / N as f64);
+            println!(
+                "{label:<34} {:>7.0} ns",
+                t.elapsed().as_nanos() as f64 / N as f64
+            );
         };
         time("h.stats() (already in every row)", &mut || {
             std::hint::black_box(h.stats());
@@ -1557,8 +1575,16 @@ mod tests {
         let t = Instant::now();
         let totals: BTreeMap<String, u64> =
             serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
-        std::hint::black_box(totals.into_iter().map(|(h, n)| (h, (n, 0))).collect::<BTreeMap<_, _>>());
-        println!("load, 10,001 totals                {:>7.0} µs", t.elapsed().as_micros());
+        std::hint::black_box(
+            totals
+                .into_iter()
+                .map(|(h, n)| (h, (n, 0)))
+                .collect::<BTreeMap<_, _>>(),
+        );
+        println!(
+            "load, 10,001 totals                {:>7.0} µs",
+            t.elapsed().as_micros()
+        );
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

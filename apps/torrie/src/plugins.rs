@@ -223,14 +223,13 @@ pub fn seed() {
             std::fs::write(&main, script)?;
             std::fs::set_permissions(&main, std::fs::Permissions::from_mode(0o755))
         };
-        let res = (if plugin.exists() { Ok(()) } else { write() })
-            .and_then(|_| {
-                std::fs::OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(&marker)?
-                    .write_all(format!("{id}\n").as_bytes())
-            });
+        let res = (if plugin.exists() { Ok(()) } else { write() }).and_then(|_| {
+            std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&marker)?
+                .write_all(format!("{id}\n").as_bytes())
+        });
         if let Err(e) = res {
             eprintln!("Torrie: seeding plugins: {e}");
         }

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Runs rustfmt before a commit with Rust changes. Enable once per clone: git config core.hooksPath .githooks
+git diff --cached --name-only --diff-filter=ACM -- '*.rs' | grep -q . || exit 0
+if ! cargo fmt --all --check >/dev/null; then
+    cargo fmt --all
+    echo "pre-commit: cargo fmt reformatted some files. Review them, git add, and commit again." >&2
+    exit 1
+fi
