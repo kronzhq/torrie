@@ -863,6 +863,18 @@ impl Render for Preferences {
                         cx,
                         |s, v| s.keep_awake = v,
                     )),
+                    row(
+                        "Notify when downloads finish",
+                        "Shows a notification for each finished download",
+                        &t,
+                    )
+                    .child(self.switch(
+                        "notify-done",
+                        s.notify_done,
+                        &t,
+                        cx,
+                        |s, v| s.notify_done = v,
+                    )),
                 ],
                 &t,
             )

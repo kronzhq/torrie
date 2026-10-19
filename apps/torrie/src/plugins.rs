@@ -54,8 +54,6 @@ pub const DONE: &str = "torrent-done";
 pub const DONE_SEEDING: &str = "torrent-done-seeding";
 pub const EVENTS: [&str; 3] = [ADDED, DONE, DONE_SEEDING];
 
-/// Folder name of the plugin Torrie ships, on by default.
-pub const BUNDLED: &str = "notify";
 pub const MAX_RUNNING: usize = 4;
 const MAX_TIMEOUT: u64 = 3600;
 const LOG_LIMIT: u64 = 1 << 20;
@@ -65,18 +63,12 @@ const STOP_GRACE: Duration = Duration::from_secs(5);
 /// Largest package an install link downloads.
 const MAX_PACKAGE: u64 = 50 << 20;
 
-const NOTIFY_JSON: &str = r#"{
-  "id": "notify",
-  "name": "Notify",
-  "version": "2.0.0",
-  "description": "Shows a notification when a download finishes",
-  "author": "Torrie"
-}
-"#;
+/// The plugin that posted "Download Complete" before Torrie did it itself ([`Settings::notify_done`]).
+const NOTIFY: &str = "notify";
 
-/// Notify's hook before Torrie posted the notification itself: macOS credits osascript's notifications to Script
-/// Editor, and drops them unless Script Editor may notify. [`seed`] switches unedited copies over.
-const OLD_NOTIFY_SH: &str = r#"#!/bin/sh
+/// Its hook as shipped. macOS credits osascript's notifications to Script Editor, and drops them unless Script
+/// Editor may notify.
+const NOTIFY_SH: &str = r#"#!/bin/sh
 # Torrie's bundled plugin, and an example to copy. See README "Plugins" for every variable.
 exec osascript -e 'on run argv' -e 'display notification (item 1 of argv) with title "Download Complete"' -e 'end run' "$TR_TORRENT_NAME"
 "#;
@@ -205,60 +197,77 @@ fn log_path(id: &str) -> PathBuf {
     dir().join(format!("{id}.log"))
 }
 
-/// Plugins Torrie ships: folder, manifest, and hook file name and hook if any. Only [`BUNDLED`] starts on; it has
-/// no hook, Torrie posts its notification (see [`run`]).
-const SEEDED: [(&str, &str, Option<(&str, &str)>); 2] = [
-    (BUNDLED, NOTIFY_JSON, None),
-    (
-        "shortcuts",
-        include_str!("../assets/plugins/shortcuts/plugin.json"),
-        Some((
-            "shortcuts.sh",
-            include_str!("../assets/plugins/shortcuts/shortcuts.sh"),
-        )),
-    ),
-];
+/// Plugins Torrie ships, off until switched on: folder, manifest, hook file name and hook.
+const SEEDED: [(&str, &str, &str, &str); 1] = [(
+    "shortcuts",
+    include_str!("../assets/plugins/shortcuts/plugin.json"),
+    "shortcuts.sh",
+    include_str!("../assets/plugins/shortcuts/shortcuts.sh"),
+)];
 
 /// Adds each shipped plugin once, so ones added in an update appear and ones you delete stay gone.
 /// `plugins/.seeded` lists the ids already added.
 pub fn seed() {
-    let old = dir().join(BUNDLED).join("notify.sh");
-    if std::fs::read_to_string(&old).is_ok_and(|s| s == OLD_NOTIFY_SH)
-        && std::fs::write(dir().join(BUNDLED).join("plugin.json"), NOTIFY_JSON).is_ok()
-    {
-        _ = std::fs::remove_file(old);
-    }
     let marker = dir().join(".seeded");
     let seeded = std::fs::read_to_string(&marker).unwrap_or_default();
-    for (id, json, hook) in SEEDED {
+    for (id, json, file, script) in SEEDED {
         if seeded.lines().any(|l| l == id) {
             continue;
         }
         let plugin = dir().join(id);
+        let main = plugin.join(file);
         // Installs from before the marker already have theirs; leave any edits alone.
         let write = || {
             std::fs::create_dir_all(&plugin)?;
             std::fs::write(plugin.join("plugin.json"), json)?;
-            if let Some((file, script)) = hook {
-                std::fs::write(plugin.join(file), script)?;
-                std::fs::set_permissions(
-                    plugin.join(file),
-                    std::fs::Permissions::from_mode(0o755),
-                )?;
-            }
-            Ok::<_, std::io::Error>(())
+            std::fs::write(&main, script)?;
+            std::fs::set_permissions(&main, std::fs::Permissions::from_mode(0o755))
         };
-        let res = (if plugin.exists() { Ok(()) } else { write() }).and_then(|_| {
-            std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&marker)?
-                .write_all(format!("{id}\n").as_bytes())
-        });
+        let res = (if plugin.exists() { Ok(()) } else { write() })
+            .and_then(|_| {
+                std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&marker)?
+                    .write_all(format!("{id}\n").as_bytes())
+            });
         if let Err(e) = res {
             eprintln!("Torrie: seeding plugins: {e}");
         }
     }
+}
+
+/// Once, for installs that had the notify plugin (in `root`'s `.seeded`): `notify_done` follows whether it was
+/// on, and an unedited copy goes away. An edited one stays a plugin, so notifications are off rather than
+/// doubled; one you deleted leaves them off. Returns whether `s` changed.
+pub fn migrate_notify(root: &Path, s: &mut Settings) -> bool {
+    let marker = root.join(".seeded");
+    let Ok(seeded) = std::fs::read_to_string(&marker) else {
+        return false;
+    };
+    if !seeded.lines().any(|l| l == NOTIFY) {
+        return false;
+    }
+    let folder = root.join(NOTIFY);
+    // No hook at all is the copy an unreleased build left.
+    let shipped = load(NOTIFY.into(), &folder).is_ok_and(|p| {
+        p.main.is_none()
+            && p.hooks
+                .values()
+                .all(|f| std::fs::read_to_string(f).is_ok_and(|s| s == NOTIFY_SH))
+    });
+    s.notify_done = shipped && s.plugins_enabled.iter().any(|p| p == NOTIFY);
+    if shipped {
+        _ = std::fs::remove_dir_all(&folder);
+        s.plugins_enabled.retain(|p| p != NOTIFY);
+    }
+    let rest: String = seeded
+        .lines()
+        .filter(|l| *l != NOTIFY)
+        .map(|l| format!("{l}\n"))
+        .collect();
+    _ = std::fs::write(&marker, rest);
+    true
 }
 
 /// Every plugin folder, sorted, with the reason it can't load if it can't.
@@ -436,22 +445,10 @@ pub fn run(event: &'static str, id: usize, h: &ManagedTorrent, s: &Settings) {
         "event",
         json!({ "event": event, "torrent": crate::rpc::torrent_json(&Row::new(id, h), h) }),
     );
-    let enabled: Vec<_> = list()
+    let hooks: Vec<_> = list()
         .into_iter()
         .filter_map(|(_, p)| p.ok())
         .filter(|p| s.plugins_enabled.contains(&p.id))
-        .collect();
-    // A notify edited to have its own hook or process posts its own.
-    if event == DONE
-        && enabled
-            .iter()
-            .any(|p| p.id == BUNDLED && p.hooks.is_empty() && p.main.is_none())
-    {
-        let name = h.name().unwrap_or_else(|| h.info_hash().as_string());
-        crate::macos::notify(&h.info_hash().as_string(), "Download Complete", &name);
-    }
-    let hooks: Vec<_> = enabled
-        .into_iter()
         .filter_map(|p| {
             Some((
                 command(p.hooks.get(event)?, &p, s),
@@ -1148,22 +1145,54 @@ mod tests {
     #[test]
     fn shipped_plugins_load() {
         let root = temp("plugin-seeded");
-        for (id, json, hook) in SEEDED {
+        for (id, json, file, script) in SEEDED {
             std::fs::create_dir_all(root.join(id)).unwrap();
             std::fs::write(root.join(id).join("plugin.json"), json).unwrap();
-            if let Some((file, script)) = hook {
-                std::fs::write(root.join(id).join(file), script).unwrap();
-                std::fs::set_permissions(
-                    root.join(id).join(file),
-                    std::fs::Permissions::from_mode(0o755),
-                )
-                .unwrap();
-            }
-            let p = load(id.into(), &root.join(id)).unwrap();
-            assert_eq!(p.manifest.id, id);
-            // Torrie posts notify's notification only while it has neither.
-            assert_eq!(id == BUNDLED, p.hooks.is_empty() && p.main.is_none());
+            std::fs::write(root.join(id).join(file), script).unwrap();
+            std::fs::set_permissions(
+                root.join(id).join(file),
+                std::fs::Permissions::from_mode(0o755),
+            )
+            .unwrap();
+            assert_eq!(load(id.into(), &root.join(id)).unwrap().manifest.id, id);
         }
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn notify_becomes_a_setting() {
+        let root = temp("plugin-notify");
+        let json = r#"{"name": "Notify", "hooks": {"torrent-done": "run.sh"}}"#;
+        let on = || Settings {
+            plugins_enabled: vec![NOTIFY.into(), "other".into()],
+            ..Default::default()
+        };
+        let seeded = |r: &Path| std::fs::write(r.join(".seeded"), "notify\nshortcuts\n").unwrap();
+
+        // Shipped and on: the setting takes over, once.
+        make(&root, NOTIFY, json, NOTIFY_SH, true).unwrap();
+        seeded(&root);
+        let mut s = on();
+        assert!(migrate_notify(&root, &mut s));
+        assert!(s.notify_done && s.plugins_enabled == ["other"]);
+        assert!(!root.join(NOTIFY).exists());
+        assert_eq!(
+            std::fs::read_to_string(root.join(".seeded")).unwrap(),
+            "shortcuts\n"
+        );
+        assert!(!migrate_notify(&root, &mut s));
+
+        // Deleted: stays off.
+        seeded(&root);
+        let mut s = on();
+        assert!(migrate_notify(&root, &mut s) && !s.notify_done);
+
+        // Edited: stays a plugin, and the setting goes off so it isn't doubled.
+        make(&root, NOTIFY, json, "#!/bin/sh\nsay done\n", true).unwrap();
+        seeded(&root);
+        let mut s = on();
+        assert!(migrate_notify(&root, &mut s) && !s.notify_done);
+        assert!(root.join(NOTIFY).exists() && s.plugins_enabled.len() == 2);
         std::fs::remove_dir_all(&root).unwrap();
     }
 

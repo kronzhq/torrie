@@ -106,6 +106,8 @@ pub struct Settings {
     pub check_updates: bool,
     /// Stops the Mac idle-sleeping while anything is downloading.
     pub keep_awake: bool,
+    /// Posts a notification when a download finishes.
+    pub notify_done: bool,
 }
 
 /// Light or dark mode; System follows macOS.
@@ -150,11 +152,12 @@ impl Default for Settings {
             rpc_port: 9091,
             rpc_lan: false,
             rpc_password: crate::rpc::new_password(),
-            plugins_enabled: vec![crate::plugins::BUNDLED.into()],
+            plugins_enabled: Vec::new(),
             plugin_settings: BTreeMap::new(),
             streaming: false,
             check_updates: true,
             keep_awake: true,
+            notify_done: true,
         }
     }
 }
@@ -397,7 +400,10 @@ pub struct Engine {
 
 impl Engine {
     pub fn start() -> anyhow::Result<Self> {
-        let settings = Settings::load()?;
+        let mut settings = Settings::load()?;
+        if plugins::migrate_notify(&plugins::dir(), &mut settings) {
+            settings.save()?;
+        }
         let rt = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()?;
@@ -1359,6 +1365,10 @@ async fn watch(
                 continue;
             }
             if downloading.remove(&id) {
+                if s.notify_done {
+                    let name = h.name().unwrap_or_else(|| h.info_hash().as_string());
+                    crate::macos::notify(&h.info_hash().as_string(), "Download Complete", &name);
+                }
                 plugins::run(plugins::DONE, id, &h, &s);
             }
             if s.ratio_limit_enabled
