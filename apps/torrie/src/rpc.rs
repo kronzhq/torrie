@@ -49,7 +49,7 @@ const LOGO: &[u8] = include_bytes!("../assets/logo.png");
 const COOKIE: &str = "torrie_password";
 /// Settings `settings.set` can't change: they decide what runs and who connects, or only apply from the
 /// Settings window.
-const LOCKED: [&str; 15] = [
+const LOCKED: [&str; 16] = [
     "plugins_enabled",
     "plugin_settings",
     "rpc_enabled",
@@ -64,6 +64,7 @@ const LOCKED: [&str; 15] = [
     "animations",
     "menu_bar",
     "open_at_login",
+    "menu_bar_mode",
     "check_updates",
 ];
 

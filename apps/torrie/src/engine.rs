@@ -77,6 +77,8 @@ pub struct Settings {
     /// A menu bar item; also keeps Torrie running after its window closes.
     pub menu_bar: bool,
     pub open_at_login: bool,
+    /// Opening at login starts in the menu bar, without the window.
+    pub menu_bar_mode: bool,
     /// Alternative speed limits: replace the limits above while on.
     pub alt_speed_enabled: bool,
     pub alt_speed_down_kbps: u32,
@@ -136,6 +138,7 @@ impl Default for Settings {
             animations: true,
             menu_bar: true,
             open_at_login: false,
+            menu_bar_mode: false,
             alt_speed_enabled: false,
             alt_speed_down_kbps: 50,
             alt_speed_up_kbps: 50,

@@ -9,6 +9,8 @@ use tray_icon::{Icon, MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, 
 use crate::engine::{Settings, home};
 
 const LABEL: &str = "xyz.kronz.torrie";
+/// Passed by the login item, so a launch at login can be told apart.
+pub const LOGIN_ARG: &str = "--login";
 
 struct MenuBar(Option<TrayIcon>);
 
@@ -137,7 +139,7 @@ fn login_item(on: bool) -> std::io::Result<()> {
 	<key>Label</key>
 	<string>{LABEL}</string>
 	<key>ProgramArguments</key>
-	<array><string>{exe}</string></array>
+	<array><string>{exe}</string><string>{LOGIN_ARG}</string></array>
 	<key>RunAtLoad</key>
 	<true/>
 </dict>

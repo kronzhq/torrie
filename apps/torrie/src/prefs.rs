@@ -799,6 +799,18 @@ impl Render for Preferences {
                             |s, v| s.open_at_login = v,
                         )),
                         row(
+                            "Menu bar mode",
+                            "When opened at login, starts in the menu bar without its window",
+                            &t,
+                        )
+                        .child(self.switch(
+                            "menu-bar-mode",
+                            s.menu_bar_mode,
+                            &t,
+                            cx,
+                            |s, v| s.menu_bar_mode = v,
+                        )),
+                        row(
                             "Check for updates automatically",
                             format!("Torrie {}", env!("CARGO_PKG_VERSION")),
                             &t,

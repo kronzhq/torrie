@@ -257,7 +257,11 @@ fn main() {
         })
         .detach();
 
-        open_main(&engine, &urls, cx);
+        let s = engine.settings();
+        let at_login = std::env::args().any(|a| a == macos::LOGIN_ARG);
+        if !(at_login && s.menu_bar && s.menu_bar_mode) {
+            open_main(&engine, &urls, cx);
+        }
         update::watch(&engine, cx);
     });
 }
