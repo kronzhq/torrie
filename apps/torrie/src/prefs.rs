@@ -387,6 +387,27 @@ impl Preferences {
             .into_any_element()
     }
 
+    /// Whether Torrie opens magnet links and .torrent files, with a button to make it; None when unbundled.
+    fn default_app_row(&self, t: &Theme, cx: &Context<Self>) -> Option<Div> {
+        let on = self.default_app?;
+        let detail = if on {
+            "Torrie opens magnet links and .torrent files"
+        } else {
+            "Another app opens magnet links and .torrent files"
+        };
+        let make = button("default-app", "Make Default", t, false).on_click(cx.listener(
+            |this, _, _, cx| {
+                if let Err(e) = crate::macos::make_default_app() {
+                    let e = format!("Couldn't make Torrie the default torrent app (error {e})");
+                    this.engine.report(e);
+                }
+                this.default_app = crate::macos::is_default_app();
+                cx.notify();
+            },
+        ));
+        Some(row("Default torrent app", detail, t).when(!on, |r| r.child(make)))
+    }
+
     fn appearance(&self, t: &Theme, cx: &Context<Self>) -> Div {
         let s = &self.settings;
         let themes = cx.global::<Themes>();
@@ -842,26 +863,7 @@ impl Render for Preferences {
                         )),
                     ]
                     .into_iter()
-                    .chain(self.default_app.map(|on| {
-                        row(
-                            "Default torrent app",
-                            if on {
-                                "Torrie opens magnet links and .torrent files"
-                            } else {
-                                "Another app opens magnet links and .torrent files"
-                            },
-                            &t,
-                        )
-                        .when(!on, |r| {
-                            r.child(button("default-app", "Make Default", &t, false).on_click(
-                                cx.listener(|this, _, _, cx| {
-                                    crate::macos::make_default_app();
-                                    this.default_app = crate::macos::is_default_app();
-                                    cx.notify();
-                                }),
-                            ))
-                        })
-                    }))
+                    .chain(self.default_app_row(&t, cx))
                     .collect(),
                     &t,
                 )

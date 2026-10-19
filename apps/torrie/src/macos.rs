@@ -185,7 +185,13 @@ pub fn notify(id: &str, title: &str, body: &str) {
 
 #[link(name = "CoreServices", kind = "framework")]
 unsafe extern "C" {
-    // CFStringRefs, toll-free bridged with NSString; the Copy functions return them +1.
+    // CFStringRefs, toll-free bridged with NSString; the Create and Copy functions return them +1. Deprecated
+    // since macOS 12 for NSWorkspace's async versions, but they still work, synchronously, without UTType bindings.
+    fn UTTypeCreatePreferredIdentifierForTag(
+        class: &NSString,
+        tag: &NSString,
+        conforming_to: *const NSString,
+    ) -> *mut NSString;
     fn LSCopyDefaultHandlerForURLScheme(scheme: &NSString) -> *mut NSString;
     fn LSCopyDefaultRoleHandlerForContentType(uti: &NSString, role: u32) -> *mut NSString;
     fn LSSetDefaultHandlerForURLScheme(scheme: &NSString, bundle_id: &NSString) -> i32;
@@ -198,40 +204,54 @@ unsafe extern "C" {
 
 /// `kLSRolesAll`.
 const ROLES_ALL: u32 = 0xFFFF_FFFF;
-/// Declared in Info.plist.
-const TORRENT_UTI: &str = "org.bittorrent.torrent";
+
+/// The type Finder gives .torrent files: the `org.bittorrent.torrent` Info.plist declares, unless another app
+/// declared its own first.
+fn torrent_type() -> Retained<NSString> {
+    // SAFETY: valid strings in, no conformance filter; the +1 result is owned by the Retained.
+    unsafe {
+        Retained::from_raw(UTTypeCreatePreferredIdentifierForTag(
+            &NSString::from_str("public.filename-extension"),
+            &NSString::from_str("torrent"),
+            std::ptr::null(),
+        ))
+    }
+    .unwrap_or_else(|| NSString::from_str("org.bittorrent.torrent"))
+}
 
 /// Whether Torrie opens magnet links and .torrent files; None for an unbundled build (`cargo run`).
 pub fn is_default_app() -> Option<bool> {
-    let id = NSBundle::mainBundle().bundleIdentifier()?;
+    let id = NSBundle::mainBundle().bundleIdentifier()?.to_string();
+    // Launch Services hands bundle ids back lowercased.
     let is_us = |handler: *mut NSString| {
+        // SAFETY: a +1 CFString or null, from a Copy function.
         unsafe { Retained::from_raw(handler) }
-            .is_some_and(|h| h.to_string().eq_ignore_ascii_case(&id.to_string()))
+            .is_some_and(|h| h.to_string().eq_ignore_ascii_case(&id))
     };
+    // SAFETY: valid strings in.
     unsafe {
         Some(
             is_us(LSCopyDefaultHandlerForURLScheme(&NSString::from_str(
                 "magnet",
             ))) && is_us(LSCopyDefaultRoleHandlerForContentType(
-                &NSString::from_str(TORRENT_UTI),
+                &torrent_type(),
                 ROLES_ALL,
             )),
         )
     }
 }
 
-/// Makes Torrie open magnet links and .torrent files.
-pub fn make_default_app() {
+/// Makes Torrie open magnet links and .torrent files; Err has Launch Services' error code.
+pub fn make_default_app() -> Result<(), i32> {
     let Some(id) = NSBundle::mainBundle().bundleIdentifier() else {
-        return;
+        return Ok(());
     };
-    let errors = unsafe {
+    // SAFETY: valid strings in.
+    let codes = unsafe {
         [
             LSSetDefaultHandlerForURLScheme(&NSString::from_str("magnet"), &id),
-            LSSetDefaultRoleHandlerForContentType(&NSString::from_str(TORRENT_UTI), ROLES_ALL, &id),
+            LSSetDefaultRoleHandlerForContentType(&torrent_type(), ROLES_ALL, &id),
         ]
     };
-    if errors.iter().any(|&e| e != 0) {
-        eprintln!("Torrie: making Torrie the default app: {errors:?}");
-    }
+    codes.into_iter().find(|&c| c != 0).map_or(Ok(()), Err)
 }
