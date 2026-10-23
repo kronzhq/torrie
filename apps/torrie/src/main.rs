@@ -1,4 +1,6 @@
 mod add;
+#[cfg(test)]
+mod bench;
 mod engine;
 mod format;
 mod macos;

@@ -1017,6 +1017,42 @@ impl Engine {
         Some(details(&h, haves))
     }
 
+    /// An engine on a fresh offline session in `dir`, without the background tasks or the user's settings.
+    #[cfg(test)]
+    pub fn offline(dir: PathBuf) -> Self {
+        let rt = Runtime::new().unwrap();
+        let opts = SessionOptions {
+            dht: None,
+            listen: None,
+            persistence: None,
+            ..Default::default()
+        };
+        let session = rt
+            .block_on(Session::new_with_opts(dir.clone(), opts))
+            .unwrap();
+        let settings = Settings::default();
+        Self {
+            rt,
+            session,
+            errors: Default::default(),
+            pending: Default::default(),
+            reviews: Default::default(),
+            duplicates: Default::default(),
+            retries: Default::default(),
+            stalls: Default::default(),
+            kicks: Default::default(),
+            busy: Default::default(),
+            speeds: Default::default(),
+            verifying: Default::default(),
+            changed: Default::default(),
+            pending_seq: Default::default(),
+            next_id: Default::default(),
+            session_dir: dir,
+            started_with: settings.network(),
+            settings: Arc::new(Mutex::new(settings)),
+        }
+    }
+
     /// Flush resume state before the process exits.
     pub fn stop(&self) {
         self.rt.block_on(self.session.stop());
