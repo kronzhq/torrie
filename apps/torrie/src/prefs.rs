@@ -1027,7 +1027,7 @@ impl Render for Preferences {
                                     .text_size(px(11.))
                                     .font_weight(FontWeight::MEDIUM)
                                     .bg(if on { t.accent } else { t.elevated })
-                                    .text_color(if on { gpui::white() } else { t.muted })
+                                    .text_color(if on { t.on_accent() } else { t.muted })
                                     .when(!s.alt_speed_time_enabled, |d| d.opacity(0.45))
                                     .child(day)
                                     .on_click(cx.listener(move |this, _, _, cx| {

@@ -196,7 +196,7 @@ const BUILTIN: [(&str, bool, [u32; 16]); 16] = [
         false,
         [
             0xfcfcfd, 0xf1f2f5, 0xffffff, 0xf3f4f7, 0xeceef2, 0xe6e8ed, 0xd4d8df, 0x14161b,
-            0x5b6270, 0x99a0ac, 0x6a5cff, 0x2f6bff, 0x0e9f6a, 0xd39400, 0x8a909b, 0xe5484d,
+            0x525865, 0x646c7b, 0x5c4dff, 0x185bff, 0x0b7a51, 0x8e6400, 0x666c77, 0xd01e23,
         ],
     ),
     (
@@ -204,122 +204,139 @@ const BUILTIN: [(&str, bool, [u32; 16]); 16] = [
         true,
         [
             0x0f1115, 0x17191f, 0x14161b, 0x1a1d24, 0x20232b, 0x22262e, 0x30353f, 0xe8eaef,
-            0x9299a6, 0x5c6370, 0x8f82ff, 0x5b9dff, 0x3ddc97, 0xf5b544, 0x6b7280, 0xff6b6b,
+            0xa7adb7, 0x89919e, 0x8f82ff, 0x5b9dff, 0x3ddc97, 0xf5b544, 0x8b919e, 0xff6b6b,
         ],
     ),
     (
         "Catppuccin Latte",
         false,
         [
-            0xeff1f5, 0xe6e9ef, 0xf7f8fa, 0xdadde4, 0xccd0da, 0xccd0da, 0xbcc0cc, 0x4c4f69,
-            0x6c6f85, 0xa0a3b2, 0x8839ef, 0x1e66f5, 0x40a02b, 0xdf8e1d, 0x8c8fa1, 0xd20f39,
+            0xeff1f5, 0xe6e9ef, 0xf7f8fa, 0xdadde4, 0xccd0da, 0xccd0da, 0xbcc0cc, 0x2a2b3a,
+            0x444654, 0x555869, 0x7113ec, 0x094cd2, 0x29661b, 0x7c4f10, 0x555868, 0xb30d31,
         ],
     ),
     (
         "Catppuccin Mocha",
         true,
         [
-            0x1e1e2e, 0x181825, 0x212131, 0x262736, 0x313244, 0x313244, 0x45475a, 0xcdd6f4,
-            0xa6adc8, 0x70748a, 0xcba6f7, 0x89b4fa, 0xa6e3a1, 0xf9e2af, 0x7f849c, 0xf38ba8,
+            0x1e1e2e, 0x181825, 0x212131, 0x262736, 0x313244, 0x313244, 0x45475a, 0xf5f7fd,
+            0xb9bed4, 0x9b9eae, 0xcba6f7, 0x89b4fa, 0xa6e3a1, 0xf9e2af, 0x9a9eb1, 0xf38ba8,
         ],
     ),
     (
         "Dracula",
         true,
         [
-            0x282a36, 0x21222c, 0x2c2d38, 0x32333c, 0x44475a, 0x44475a, 0x565b73, 0xf8f8f2,
-            0x6272a4, 0x4b5578, 0xbd93f9, 0x8be9fd, 0x50fa7b, 0xf1fa8c, 0x6272a4, 0xff5555,
+            0x282a36, 0x21222c, 0x2c2d38, 0x32333c, 0x44475a, 0x44475a, 0x565b73, 0xffffff,
+            0xcdd2e2, 0xb0b6cd, 0xc9a6fa, 0x8be9fd, 0x50fa7b, 0xf1fa8c, 0xaeb6d0, 0xff9a9a,
         ],
     ),
     (
         "Everforest Dark",
         true,
         [
-            0x2d353b, 0x232a2e, 0x343c41, 0x414a4c, 0x343f44, 0x343f44, 0x475258, 0xd3c6aa,
-            0x859289, 0x626d6a, 0xa7c080, 0x7fbbb3, 0x83c092, 0xdbbc7f, 0x859289, 0xe67e80,
+            0x2d353b, 0x232a2e, 0x343c41, 0x414a4c, 0x343f44, 0x343f44, 0x475258, 0xffffff,
+            0xe9ebe9, 0xbdc4c2, 0xb5ca94, 0x9fccc6, 0x9eceaa, 0xdcbe83, 0xbec5c0, 0xf0b3b5,
         ],
     ),
     (
         "Gruvbox Dark",
         true,
         [
-            0x282828, 0x1d2021, 0x31302e, 0x413e39, 0x3c3836, 0x3c3836, 0x504945, 0xebdbb2,
-            0xa89984, 0x756c5f, 0xfabd2f, 0x83a598, 0xb8bb26, 0xd79921, 0x928374, 0xfb4934,
+            0x282828, 0x1d2021, 0x31302e, 0x413e39, 0x3c3836, 0x3c3836, 0x504945, 0xffffff,
+            0xdbd4cc, 0xb8b2a8, 0xfabd2f, 0x9cb7ad, 0xb8bb26, 0xe1a739, 0xbab1a7, 0xfd9387,
         ],
     ),
     (
         "Gruvbox Light",
         false,
         [
-            0xfbf1c7, 0xebdbb2, 0xfdf8e3, 0xeae6ca, 0xd5c4a1, 0xd5c4a1, 0xbdae93, 0x3c3836,
-            0x7c6f64, 0xafa38c, 0xaf3a03, 0x076678, 0x79740e, 0xb57614, 0x928374, 0x9d0006,
+            0xfbf1c7, 0xebdbb2, 0xfdf8e3, 0xeae6ca, 0xd5c4a1, 0xd5c4a1, 0xbdae93, 0x252321,
+            0x463f39, 0x5b523f, 0x933103, 0x065a6a, 0x57530a, 0x70490c, 0x5a5046, 0x9d0006,
         ],
     ),
     (
         "Kanagawa",
         true,
         [
-            0x1f1f28, 0x16161d, 0x212129, 0x26252a, 0x2a2a37, 0x2a2a37, 0x363646, 0xdcd7ba,
-            0x727169, 0x51504f, 0x7e9cd8, 0x7fb4ca, 0x98bb6c, 0xe6c384, 0x727169, 0xe46876,
+            0x1f1f28, 0x16161d, 0x212129, 0x26252a, 0x2a2a37, 0x2a2a37, 0x363646, 0xf7f5ee,
+            0xbebdb8, 0x9f9e9d, 0x809ed9, 0x7fb4ca, 0x98bb6c, 0xe6c384, 0x9e9d96, 0xe87e8a,
         ],
     ),
     (
         "Nord",
         true,
         [
-            0x2e3440, 0x272c36, 0x373d4a, 0x484e5e, 0x3b4252, 0x3b4252, 0x4c566a, 0xd8dee9,
-            0xa3abb9, 0x747b89, 0x88c0d0, 0x81a1c1, 0xa3be8c, 0xebcb8b, 0x7b88a1, 0xbf616a,
+            0x2e3440, 0x272c36, 0x373d4a, 0x484e5e, 0x3b4252, 0x3b4252, 0x4c566a, 0xffffff,
+            0xedeef1, 0xc3c6cc, 0xa2ceda, 0xb6c9db, 0xb8cda6, 0xebcb8b, 0xc1c7d3, 0xe4bcc0,
         ],
     ),
     (
         "One Dark",
         true,
         [
-            0x282c34, 0x21252b, 0x292d35, 0x2c3037, 0x2c313a, 0x2c313a, 0x3e4451, 0xabb2bf,
-            0x5c6370, 0x474d58, 0x61afef, 0x56b6c2, 0x98c379, 0xe5c07b, 0x5c6370, 0xe06c75,
+            0x282c34, 0x21252b, 0x292d35, 0x2c3037, 0x2c313a, 0x2c313a, 0x3e4451, 0xffffff,
+            0xcdd0d6, 0xa8aeb9, 0x68b3f0, 0x5db9c5, 0x98c379, 0xe5c07b, 0xa8aeb8, 0xe9969d,
         ],
     ),
     (
         "Rosé Pine",
         true,
         [
-            0x191724, 0x1f1d2e, 0x201e2d, 0x2e2c3e, 0x26233a, 0x26233a, 0x403d52, 0xe0def4,
-            0x908caa, 0x605d74, 0xc4a7e7, 0x9ccfd8, 0xebbcba, 0xf6c177, 0x6e6a86, 0xeb6f92,
+            0x191724, 0x1f1d2e, 0x201e2d, 0x2e2c3e, 0x26233a, 0x26233a, 0x403d52, 0xf2f1fa,
+            0xbab8cb, 0x9c99ad, 0xc4a7e7, 0x9ccfd8, 0xebbcba, 0xf6c177, 0x9c99ae, 0xec7395,
         ],
     ),
     (
         "Rosé Pine Dawn",
         false,
         [
-            0xfaf4ed, 0xf2e9e1, 0xfcfaf6, 0xf2ede9, 0xdfdad9, 0xdfdad9, 0xcecacd, 0x575279,
-            0x797593, 0xada8b7, 0x907aa9, 0x56949f, 0xd7827e, 0xea9d34, 0x9893a5, 0xb4637a,
+            0xfaf4ed, 0xf2e9e1, 0xfcfaf6, 0xf2ede9, 0xdfdad9, 0xdfdad9, 0xcecacd, 0x343148,
+            0x4e4c61, 0x645d71, 0x6c5685, 0x3b666d, 0xa93a34, 0x89550e, 0x625d70, 0x95485d,
         ],
     ),
     (
         "Solarized Dark",
         true,
         [
-            0x002b36, 0x00212b, 0x06323d, 0x123f4a, 0x073642, 0x073642, 0x586e75, 0x93a1a1,
-            0x657b83, 0x3d5b64, 0x268bd2, 0x2aa198, 0x859900, 0xb58900, 0x586e75, 0xdc322f,
+            0x002b36, 0x00212b, 0x06323d, 0x123f4a, 0x073642, 0x073642, 0x586e75, 0xffffff,
+            0xc7d0d4, 0x92b3bc, 0x6fb4e5, 0x32c1b7, 0x9db500, 0xd4a000, 0x9dafb5, 0xec8f8d,
         ],
     ),
     (
         "Solarized Light",
         false,
         [
-            0xfdf6e3, 0xeee8d5, 0xfefaf1, 0xf0ebda, 0xe4ddc8, 0xe4ddc8, 0x93a1a1, 0x586e75,
-            0x839496, 0xb4bbb5, 0x268bd2, 0x2aa198, 0x859900, 0xb58900, 0x93a1a1, 0xdc322f,
+            0xfdf6e3, 0xeee8d5, 0xfefaf1, 0xf0ebda, 0xe4ddc8, 0xe4ddc8, 0x93a1a1, 0x2b3639,
+            0x455052, 0x5b645c, 0x1c669a, 0x1c6c66, 0x596600, 0x7a5d00, 0x566363, 0xbd2320,
         ],
     ),
     (
         "Tokyo Night",
         true,
         [
-            0x1a1b26, 0x16161e, 0x1e1e29, 0x24242f, 0x292e42, 0x292e42, 0x414868, 0xc0caf5,
-            0x565f89, 0x3e4461, 0x7aa2f7, 0x7dcfff, 0x9ece6a, 0xe0af68, 0x565f89, 0xf7768e,
+            0x1a1b26, 0x16161e, 0x1e1e29, 0x24242f, 0x292e42, 0x292e42, 0x414868, 0xeceffc,
+            0xb3b8cf, 0x9399ba, 0x7aa2f7, 0x7dcfff, 0x9ece6a, 0xe0af68, 0x9299bb, 0xf7768e,
         ],
     ),
 ];
+
+/// WCAG contrast ratio, 1 to 21.
+fn contrast(a: Hsla, b: Hsla) -> f32 {
+    let lum = |c: Hsla| {
+        let c = c.to_rgb();
+        let f = |v: f32| {
+            if v <= 0.03928 {
+                v / 12.92
+            } else {
+                ((v + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b)
+    };
+    let (a, b) = (lum(a), lum(b));
+    (a.max(b) + 0.05) / (a.min(b) + 0.05)
+}
 
 fn palette(dark: bool, c: [u32; 16]) -> Theme {
     let c = c.map(|v| Hsla::from(rgb(v)));
@@ -476,13 +493,28 @@ impl Theme {
             .or_else(|| find(if dark { "Dark" } else { "Light" }))
             .unwrap_or_else(|| palette(BUILTIN[1].1, BUILTIN[1].2));
         if let Some(a) = g.accent {
-            t.accent = a;
+            t.set_accent(a);
         }
         if let Some(f) = &g.font {
             t.font = f.clone();
         }
         t.motion = g.motion;
         t
+    }
+
+    /// One preset serves both modes, so keep its hue but shift lightness until it reads on this theme.
+    fn set_accent(&mut self, mut a: Hsla) {
+        let bgs = [
+            self.bg,
+            self.sidebar,
+            self.surface,
+            self.hover,
+            self.elevated,
+        ];
+        while bgs.iter().any(|&bg| contrast(a, bg) < 4.5) && a.l > 0.0 && a.l < 1.0 {
+            a.l = (a.l + if self.dark { 0.01 } else { -0.01 }).clamp(0.0, 1.0);
+        }
+        self.accent = a;
     }
 
     pub fn state(&self, s: State) -> Hsla {
@@ -492,6 +524,15 @@ impl Theme {
             State::Metadata | State::Checking => self.checking,
             State::Paused => self.paused,
             State::Error => self.error,
+        }
+    }
+
+    /// White or near-black, whichever reads better on the accent (pastel accents need dark text).
+    pub fn on_accent(&self) -> Hsla {
+        if contrast(gpui::white(), self.accent) >= contrast(rgb(0x14161b).into(), self.accent) {
+            gpui::white()
+        } else {
+            rgb(0x14161b).into()
         }
     }
 
@@ -680,7 +721,7 @@ pub fn button(
             linear_color_stop(accent, 1.),
         ))
         .border_color(shade(accent, -0.12))
-        .text_color(gpui::white())
+        .text_color(t.on_accent())
         .hover(move |s| s.bg(top))
     } else {
         let hover = t.border_strong;
@@ -725,7 +766,7 @@ pub fn checkbox(id: impl Into<ElementId>, on: bool, t: &Theme) -> Stateful<Div> 
         .when(on, |d| {
             d.bg(t.accent)
                 .shadow(t.lift())
-                .child(icon("check", px(11.), gpui::white()))
+                .child(icon("check", px(11.), t.on_accent()))
         })
 }
 
@@ -1144,6 +1185,40 @@ mod tests {
             vec![1.0, 0.0]
         );
         assert_eq!(buckets(&[true, false, false, true], 2), vec![0.5, 0.5]);
+    }
+
+    #[test]
+    fn builtin_text_is_readable() {
+        for (name, dark, c) in BUILTIN {
+            let t = palette(dark, c);
+            for bg in [t.bg, t.sidebar, t.surface, t.hover, t.elevated] {
+                let roles = [
+                    ("text", t.text, 7.0),
+                    ("muted", t.muted, 6.0),
+                    ("faint", t.faint, 4.5),
+                    ("accent", t.accent, 4.5),
+                    ("down", t.down, 4.5),
+                    ("up", t.up, 4.5),
+                    ("checking", t.checking, 4.5),
+                    ("paused", t.paused, 4.5),
+                    ("error", t.error, 4.5),
+                ];
+                for (role, fg, min) in roles {
+                    // Hex rounding can land a hair under the target.
+                    assert!(contrast(fg, bg) >= min - 0.05, "{name} {role}");
+                }
+            }
+            assert!(contrast(t.on_accent(), t.accent) >= 4.5, "{name} on_accent");
+            for a in ACCENTS {
+                let mut t = t.clone();
+                t.set_accent(Rgba::try_from(a).unwrap().into());
+                assert!(contrast(t.accent, t.surface) >= 4.45, "{name} {a}");
+                assert!(
+                    contrast(t.on_accent(), t.accent) >= 4.5,
+                    "{name} {a} on_accent"
+                );
+            }
+        }
     }
 
     #[test]
