@@ -25,7 +25,7 @@
 
 <div class="top">
   <div class="wrap">
-    <a class="brand" href="#"><img src="icon.png" alt="">Torrie</a>
+    <a class="brand" href="/"><img src="icon.png" alt="">Torrie</a>
     <nav>
       <a href="#features">Features</a>
       <a href="#screenshots">Screenshots</a>
@@ -40,7 +40,7 @@
 </div>
 
 <div class="wrap hero">
-  <canvas class="glow" aria-hidden="true"></canvas>
+  <canvas class="dither floor" aria-hidden="true"></canvas>
   <img src="icon.png" alt="Torrie mascot">
   <h1>BitTorrent, made simple<br>for your Mac.</h1>
   <p>A fast, native client with plugins and a remote control API.</p>
@@ -51,7 +51,7 @@
     </a>
     <a class="btn ghost" href="https://github.com/kronzhq/torrie">View source on GitHub</a>
   </div>
-  <div class="meta"><span>Free &amp; open source</span><span>macOS 12+</span><span>MIT</span></div>
+  <div class="meta"><span>macOS 12+</span><span>Built in Rust</span></div>
 
   <div class="window" aria-hidden="true">
     <aside>
@@ -74,6 +74,7 @@
 
 <section id="features">
   <div class="wrap">
+    <p class="eyebrow">01 / Features</p>
     <h2>Everything you need, nothing you don't</h2>
     <p class="lead">Built natively for macOS with Zed's GPU-accelerated UI framework and a fast Rust BitTorrent engine.</p>
     <div class="grid">
@@ -143,6 +144,7 @@
 
 <section id="screenshots">
   <div class="wrap">
+    <p class="eyebrow">02 / Screenshots</p>
     <h2>See it in action</h2>
     <p class="lead">Every transfer at a glance, with the Inspector one click away.</p>
     <div class="shots">
@@ -157,6 +159,7 @@
 <section id="remote">
   <div class="wrap split">
     <div>
+      <p class="eyebrow" style="--c:var(--up)">03 / Remote</p>
       <h2>Control it from anywhere</h2>
       <p class="lead">Open the built-in web remote in any browser, or connect another app with the settings shown here.</p>
       <ol class="steps">
@@ -180,6 +183,7 @@
 <section id="plugins">
   <div class="wrap split">
     <div>
+      <p class="eyebrow">04 / Plugins</p>
       <h2>Make it yours with plugins</h2>
       <p class="lead">A plugin is just a folder with a <code>plugin.json</code>. Add commands to the Plugins menu, tabs to the Inspector, options to Settings, or run a script when a download finishes.</p>
       <ol class="steps">
@@ -203,11 +207,12 @@
 
 <section id="faq">
   <div class="wrap">
+    <p class="eyebrow">05 / FAQ</p>
     <h2>Good to know</h2>
     <p class="lead">The short answers.</p>
     <table>
       <tr><td>Requirements</td><td>macOS 12 or later.</td></tr>
-      <tr><td>Price</td><td>Free and open source under the MIT license. Read the code, report issues and send fixes on <a href="https://github.com/kronzhq/torrie">GitHub</a>.</td></tr>
+      <tr><td>Price</td><td>Free. MIT licensed, with the source on <a href="https://github.com/kronzhq/torrie">GitHub</a>.</td></tr>
       <tr><td>Default app</td><td>Move Torrie to Applications and launch it once to open <code>.torrent</code> files and <code>magnet:</code> links.</td></tr>
       <tr><td>Settings</td><td>Saved to <code>~/Library/Application Support/Torrie/settings.json</code>.</td></tr>
       <tr><td>Built with</td><td><a href="https://github.com/ikatson/rqbit">librqbit</a>, <a href="https://gpui.rs">GPUI</a>, <a href="https://tokio.rs">Tokio</a> + <a href="https://github.com/tokio-rs/axum">axum</a>, tray-icon, objc2, resvg and maxminddb.</td></tr>
@@ -216,17 +221,18 @@
 </section>
 
 <section class="cta">
+  <canvas class="dither" aria-hidden="true"></canvas>
   <div class="wrap">
     <img src="icon.png" alt="">
     <h2>Ready when you are.</h2>
-    <p class="lead" style="margin:0 auto 32px">Free and open source. One download.</p>
+    <p class="lead" style="margin:0 auto 32px">Drag it to Applications and you're set.</p>
     <a class="btn" href="https://dl.kronz.xyz/torrie/Torrie.dmg">Download for macOS</a>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <p>Open source under the MIT license. Copyright 2026 <a href="https://kronz.xyz">Kronz</a>. Source on <a href="https://github.com/kronzhq/torrie">GitHub</a>.</p>
+    <p>&copy; 2026 <a href="https://kronz.xyz">Kronz</a>. MIT license. <a href="https://github.com/kronzhq/torrie">GitHub</a>.</p>
   </div>
 </footer>
 
@@ -241,8 +247,7 @@
 <script>
   // Reveal sections as they scroll in, staggering cards in each row.
   const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && (e.target.classList.add('in'), io.unobserve(e.target))), { rootMargin: '0px 0px -8% 0px' });
-  document.querySelectorAll('section h2, section .lead, .card, .shots img, .split > *, table, .cta img, .cta .btn').forEach(el => {
-    if (el.matches('.card')) el.style.setProperty('--i', [...el.parentNode.children].indexOf(el) % 3);
+  document.querySelectorAll('section .eyebrow, section h2, section .lead, .grid, .shots img, .split > *, table, .cta img, .cta .btn').forEach(el => {
     el.classList.add('reveal');
     io.observe(el);
   });
@@ -284,14 +289,19 @@
         if (BAYER[(top - 1 - k) % 4][(x + dx) % 4] < 16 - (k + 1) * 4) rect(x + dx, top - 1 - k, 1, 1, c);
     }
   });
-  // The hero glow, dithered in the same grain instead of a smooth gradient.
-  const glow = cv => paint(cv, (rect, w, h) => {
-    const c = css(cv, '--accent');
+  // Backdrops dithered in the same grain instead of smooth gradients: 2px dots on a 3px grid, rising from the
+  // bottom edge and thinning out through the Bayer pattern over the top three quarters. Without a --c the dots
+  // sweep accent → down → up across the width, each hand-off dithered through a shifted Bayer pattern too.
+  const field = cv => paint(cv, (rect, w, h) => {
+    const pal = css(cv, '--c') ? [css(cv, '--c')] : ['--accent', '--down', '--up'].map(v => css(cv, v));
     for (let y = 0; y * 3 < h; y++) for (let x = 0; x * 3 < w; x++) {
-      const v = 1 - Math.hypot((x * 3 - w / 2) / (w / 2), (y * 3 - h / 2) / (h / 2));
-      if (v * 12 > BAYER[y % 4][x % 4] + .5) rect(x * 3, y * 3, 2, 2, c);
+      if ((y * 3 / h - .25) / .75 * 16 <= BAYER[y % 4][x % 4] + .5) continue;
+      const t = x * 3 / w * (pal.length - 1), i = Math.floor(t);
+      rect(x * 3, y * 3, 2, 2, pal[(t - i) * 16 > BAYER[(y + 2) % 4][(x + 1) % 4] + .5 ? i + 1 : i]);
     }
   });
+  document.querySelectorAll('.card, #faq td:first-child, .btn, section:not(.cta)').forEach(el => el.insertAdjacentHTML('afterbegin', '<canvas class="dither" aria-hidden="true"></canvas>'));
+  const fields = () => document.querySelectorAll('canvas.dither').forEach(field);
 
   // Keep the mock window alive: speeds wobble, downloads creep forward and the sidebar graph scrolls.
   const bars = [...document.querySelectorAll('.row .bar')].map(cv => ({ cv, p: cv.dataset.p / 100 }));
@@ -302,8 +312,8 @@
   const ease = t => 1 - (1 - t) ** 3, t0 = performance.now() + 900;
   matchMedia('(prefers-reduced-motion: reduce)').matches ? draw()
     : requestAnimationFrame(function fill(now) { const t = Math.max(0, Math.min(1, (now - t0) / 1400)); draw(ease(t)); t < 1 && requestAnimationFrame(fill); });
-  glow(document.querySelector('.glow'));
-  addEventListener('resize', () => { draw(); glow(document.querySelector('.glow')); });
+  fields();
+  addEventListener('resize', () => { draw(); fields(); });
   setInterval(() => {
     live.forEach(l => l.s.querySelector('span').textContent = (l.speed * (0.85 + Math.random() * 0.3)).toFixed(1));
     bars.forEach((b, i) => live[i]?.s.dataset.dir == 'down' && (b.p = Math.min(.99, b.p + Math.random() * .006)));
