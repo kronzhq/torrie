@@ -1,6 +1,6 @@
 [package]
 name = "torrie"
-version = "1.1.0"
+version = "1.1.1"
 edition = "2024"
 description = "A simple BitTorrent client for macOS built with GPUI"
 license = "MIT"
