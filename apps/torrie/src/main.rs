@@ -2,6 +2,7 @@ mod add;
 #[cfg(test)]
 mod bench;
 mod engine;
+mod field;
 mod format;
 mod macos;
 mod plugins;

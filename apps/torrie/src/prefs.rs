@@ -3,14 +3,15 @@
 use std::{path::PathBuf, sync::Arc};
 
 use gpui::{
-    AnyElement, ClipboardItem, Context, Div, ElementId, FocusHandle, FontWeight, Hsla,
-    KeyDownEvent, MouseButton, PathPromptOptions, Rgba, SharedString, Stateful, Subscription,
-    Window, div, prelude::*, px, relative,
+    AnyElement, ClipboardItem, Context, Div, Entity, EntityId, FontWeight, Hsla, KeyDownEvent,
+    MouseButton, PathPromptOptions, Rgba, SharedString, Stateful, Subscription, Window, div,
+    prelude::*, px, relative,
 };
 use serde_json::Value;
 
 use crate::{
     engine::{Appearance, Engine, Settings},
+    field::TextField,
     plugins::{self, Kind, Plugin, Setting},
     theme::{self, *},
     window::drag_region,
@@ -119,13 +120,14 @@ fn parse_time(text: &str) -> Option<u16> {
 pub struct Preferences {
     engine: Arc<Engine>,
     settings: Settings,
-    /// Field being typed into, its text, and whether the next key replaces it (like a selected field).
-    editing: Option<(Target, String, bool)>,
+    /// One per `Field::ALL`; each commits when it loses focus.
+    fields: Vec<Entity<TextField>>,
+    /// Plugins' text settings, made as they're first shown; each commits when it loses focus.
+    plugin_fields: Vec<(Target, Entity<TextField>)>,
+    /// The field typed into, as of this render (for its outline).
+    focused: Option<EntityId>,
     /// Read when the window opens and on Reload.
     plugins: Vec<(String, Result<Plugin, String>)>,
-    focus: Vec<FocusHandle>,
-    /// Shared by plugins' text settings: clicking from one into another commits the first before focusing.
-    plugin_focus: FocusHandle,
     /// Index into `TABS`.
     tab: usize,
     /// The selected tab's sliding fill, by index.
@@ -144,36 +146,38 @@ impl Preferences {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let focus: Vec<FocusHandle> = Field::ALL.iter().map(|_| cx.focus_handle()).collect();
-        // Only commits its own field: when clicking from one field into another, this fires after the new edit began.
-        let mut _subs: Vec<Subscription> = (focus.iter().zip(Field::ALL))
-            .map(|(h, field)| {
-                cx.on_blur(h, window, move |this, _, cx| {
-                    if this
-                        .editing
-                        .as_ref()
-                        .is_some_and(|(f, _, _)| *f == Target::Builtin(field))
-                    {
-                        this.commit(cx);
+        let settings = engine.settings();
+        let fields: Vec<_> = (Field::ALL.iter())
+            .map(|&field| {
+                cx.new(|cx| {
+                    let f = TextField::new(field.get(&settings), "", cx).right();
+                    match field {
+                        Field::Ratio => f.only(|c| c.is_ascii_digit() || c == '.', 9),
+                        Field::AltBegin | Field::AltEnd => {
+                            f.only(|c| c.is_ascii_digit() || c == ':', 5)
+                        }
+                        _ => f.digits(9),
                     }
                 })
             })
             .collect();
-        let plugin_focus = cx.focus_handle();
-        _subs.push(cx.on_blur(&plugin_focus, window, |this, _, cx| {
-            if matches!(this.editing, Some((Target::Plugin(..), _, _))) {
-                this.commit(cx);
-            }
-        }));
+        let _subs = (fields.iter().zip(Field::ALL))
+            .map(|(f, field)| {
+                let h = f.read(cx).focus_handle().clone();
+                cx.on_blur(&h, window, move |this, _, cx| {
+                    this.commit(&Target::Builtin(field), cx)
+                })
+            })
+            .collect();
         // Pick up theme files edited since launch.
-        theme::apply(&engine.settings(), cx);
+        theme::apply(&settings, cx);
         Self {
-            settings: engine.settings(),
+            settings,
             engine,
-            editing: None,
+            fields,
+            plugin_fields: vec![],
+            focused: None,
             plugins: plugins::list(),
-            focus,
-            plugin_focus,
             tab,
             tab_pill: Tween::new(tab as f32),
             fonts: None,
@@ -197,16 +201,73 @@ impl Preferences {
         cx.notify();
     }
 
-    fn commit(&mut self, cx: &mut Context<Self>) {
-        match self.editing.take() {
-            Some((Target::Builtin(field), text, _)) => self.update(cx, |s| _ = field.set(s, &text)),
+    fn text_field(&self, target: &Target) -> Option<&Entity<TextField>> {
+        match target {
+            Target::Builtin(field) => Some(&self.fields[*field as usize]),
+            _ => (self.plugin_fields.iter()).find_map(|(t, f)| (t == target).then_some(f)),
+        }
+    }
+
+    /// What a field stands for: the setting as saved.
+    fn value(&self, target: &Target) -> String {
+        match target {
+            Target::Builtin(field) => field.get(&self.settings),
+            Target::Plugin(id, key) => (self.plugins.iter())
+                .filter_map(|(_, p)| p.as_ref().ok())
+                .filter(|p| p.id == *id)
+                .flat_map(|p| p.manifest.contributes.settings.iter())
+                .find(|s| s.key == *key)
+                .map(|s| plugins::text(&plugins::value(id, s, &self.settings)))
+                .unwrap_or_default(),
+        }
+    }
+
+    /// Puts a field's text back to the setting as saved.
+    fn show(&mut self, target: &Target, cx: &mut Context<Self>) {
+        let text = self.value(target);
+        if let Some(f) = self.text_field(target) {
+            f.update(cx, |f, cx| f.set_text(text, cx));
+        }
+    }
+
+    fn commit(&mut self, target: &Target, cx: &mut Context<Self>) {
+        let Some(text) = self
+            .text_field(target)
+            .map(|f| f.read(cx).text().to_owned())
+        else {
+            return;
+        };
+        match target {
+            Target::Builtin(field) => self.update(cx, |s| _ = field.set(s, &text)),
             // Untouched: committing would restart the plugin for nothing.
-            Some((Target::Plugin(id, key), text, false)) => {
-                self.set_plugin(id, key, Value::String(text), cx)
+            Target::Plugin(id, key) if text != self.value(target) => {
+                self.set_plugin(id.clone(), key.clone(), Value::String(text), cx)
             }
             _ => {}
         }
+        self.show(target, cx);
         cx.notify();
+    }
+
+    /// Makes fields for plugins' text settings not shown before.
+    fn add_plugin_fields(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let targets: Vec<Target> = (self.plugins.iter())
+            .filter_map(|(_, p)| p.as_ref().ok())
+            .flat_map(|p| {
+                (p.manifest.contributes.settings.iter())
+                    .filter(|s| matches!(s.kind, Kind::String))
+                    .map(|s| Target::Plugin(p.id.clone(), s.key.clone()))
+            })
+            .filter(|t| self.text_field(t).is_none())
+            .collect();
+        for target in targets {
+            let value = self.value(&target);
+            let f = cx.new(|cx| TextField::new(value, "", cx).only(|_| true, 1000));
+            let h = f.read(cx).focus_handle().clone();
+            let t = target.clone();
+            (self._subs).push(cx.on_blur(&h, window, move |this, _, cx| this.commit(&t, cx)));
+            self.plugin_fields.push((target, f));
+        }
     }
 
     /// Saves a plugin's setting and restarts its plugin process, which reads settings when it starts.
@@ -230,53 +291,21 @@ impl Preferences {
         plugins::restart(&self.engine, &id);
     }
 
-    fn key(&mut self, ev: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
-        let Some((target, text, fresh)) = &mut self.editing else {
-            return;
-        };
+    /// Enter and Tab end the edit (blurring commits it); Esc puts the field back first.
+    fn key(
+        &mut self,
+        target: &Target,
+        ev: &KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         match ev.keystroke.key.as_str() {
-            "enter" | "tab" => window.blur(),
-            "escape" => {
-                self.editing = None;
-                window.blur();
-            }
-            "backspace" => {
-                if *fresh {
-                    text.clear()
-                } else {
-                    _ = text.pop()
-                }
-                *fresh = false;
-            }
-            _ => {
-                let plugin = matches!(target, Target::Plugin(..));
-                let time = matches!(target, Target::Builtin(Field::AltBegin | Field::AltEnd));
-                let ratio = *target == Target::Builtin(Field::Ratio);
-                let ok = |c: char| {
-                    (plugin && !c.is_control())
-                        || c.is_ascii_digit()
-                        || (c == '.' && ratio)
-                        || (c == ':' && time)
-                };
-                let paste = ev.keystroke.modifiers.platform && ev.keystroke.key == "v";
-                let typed = if paste {
-                    cx.read_from_clipboard().and_then(|c| c.text())
-                } else {
-                    ev.keystroke.key_char.clone()
-                };
-                if let Some(ch) = typed.filter(|c| c.chars().all(ok)) {
-                    if *fresh {
-                        text.clear();
-                        *fresh = false;
-                    }
-                    if text.chars().count() + ch.chars().count() <= if plugin { 1000 } else { 9 } {
-                        text.push_str(&ch);
-                    }
-                }
-            }
+            "enter" | "tab" => {}
+            "escape" => self.show(target, cx),
+            _ => return,
         }
+        window.blur();
         cx.stop_propagation();
-        cx.notify();
     }
 
     fn field(
@@ -287,83 +316,45 @@ impl Preferences {
         t: &Theme,
         cx: &Context<Self>,
     ) -> AnyElement {
-        let i = Field::ALL.iter().position(|f| *f == field).unwrap();
-        let input = Input {
-            target: Target::Builtin(field),
-            value: field.get(&self.settings),
-            id: ("field", i).into(),
-            focus: self.focus[i].clone(),
-        };
-        self.input(input, suffix, enabled, t, cx)
+        self.input(Target::Builtin(field), suffix, enabled, t, cx)
     }
 
     fn input(
         &self,
-        input: Input,
+        target: Target,
         suffix: &'static str,
         enabled: bool,
         t: &Theme,
         cx: &Context<Self>,
     ) -> AnyElement {
-        let Input {
-            target,
-            value,
-            id,
-            focus,
-        } = input;
-        let editing = self.editing.as_ref().filter(|(f, _, _)| *f == target);
-        let text = editing.map_or_else(|| value.clone(), |(_, s, _)| s.clone());
-        let fresh = editing.is_some_and(|(_, _, fresh)| *fresh);
-        // Plugins' text settings are wider, and show the end of what doesn't fit (where typing happens).
-        let wide = matches!(target, Target::Plugin(..));
+        let Some(input) = self.text_field(&target) else {
+            return div().into_any_element();
+        };
+        let focused = self.focused == Some(input.entity_id());
+        // Plugins' text settings are wider.
+        let w = match (&target, suffix.is_empty()) {
+            (Target::Plugin(..), _) => 200.,
+            (_, true) => 92.,
+            (_, false) => 120.,
+        };
         div()
-            .id(id)
-            .track_focus(&focus)
-            .on_key_down(cx.listener(Self::key))
-            // Keeps the window's click-outside blur from ending the edit being clicked into.
-            .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+            .on_key_down(cx.listener(move |this, ev, window, cx| this.key(&target, ev, window, cx)))
             .h(px(28.))
-            .min_w(px(92.))
+            .w(px(w))
+            .flex_none()
             .px_2()
             .flex()
-            .flex_none()
             .items_center()
-            .justify_end()
             .gap_1()
             .rounded(t.r_md())
             .bg(t.elevated)
             .border_1()
-            .border_color(if editing.is_some() {
-                t.accent
-            } else {
-                t.border
-            })
-            .cursor_text()
-            .when(wide, |d| d.w(px(200.)).overflow_hidden())
+            .border_color(if focused { t.accent } else { t.border })
             .when(!enabled, |d| d.opacity(0.45))
-            .child(
-                div()
-                    .flex_none()
-                    .whitespace_nowrap()
-                    .px(px(2.))
-                    .rounded(px(3.))
-                    .when(fresh, |d| d.bg(t.tint(t.accent)))
-                    .child(text),
-            )
-            .when(editing.is_some() && !fresh, |d| {
-                d.child(div().w(px(1.5)).h(px(14.)).bg(t.accent))
-            })
+            .child(div().flex_1().min_w_0().h_full().child(input.clone()))
             .when(!suffix.is_empty(), |d| {
-                d.child(div().text_color(t.faint).child(suffix))
+                d.child(div().flex_none().text_color(t.faint).child(suffix))
             })
-            .on_click(cx.listener(move |this, _, window, cx| {
-                if this.editing.as_ref().is_none_or(|(f, _, _)| *f != target) {
-                    this.commit(cx);
-                    this.editing = Some((target.clone(), value.clone(), true));
-                    focus.focus(window);
-                    cx.notify();
-                }
-            }))
             .into_any_element()
     }
 
@@ -721,17 +712,9 @@ impl Preferences {
                         })),
                     )
             }
-            Kind::String => {
-                let input = Input {
-                    target: Target::Plugin(id, key),
-                    value,
-                    id: el_id.into(),
-                    focus: self.plugin_focus.clone(),
-                };
-                row(set.title.clone(), set.description.clone(), t)
-                    .pl_8()
-                    .child(self.input(input, "", true, t, cx))
-            }
+            Kind::String => row(set.title.clone(), set.description.clone(), t)
+                .pl_8()
+                .child(self.input(Target::Plugin(id, key), "", true, t, cx)),
             Kind::Folder => {
                 let detail = if value.is_empty() {
                     set.description.clone()
@@ -779,6 +762,13 @@ impl Preferences {
 impl Render for Preferences {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let t = Theme::of(window, cx);
+        self.add_plugin_fields(window, cx);
+        self.focused = (self
+            .fields
+            .iter()
+            .chain(self.plugin_fields.iter().map(|(_, f)| f)))
+        .find(|f| f.read(cx).focus_handle().is_focused(window))
+        .map(|f| f.entity_id());
         // Follows `tab` wherever it's set (clicks, show_tab); set() is a no-op unless the target changes.
         self.tab_pill.set(self.tab as f32, 240, t.motion);
         if self.tab_pill.moving() {
@@ -1269,14 +1259,6 @@ impl Render for Preferences {
                     }),
             )
     }
-}
-
-/// A text field: what it edits, its current value, and its element id and focus.
-struct Input {
-    target: Target,
-    value: String,
-    id: ElementId,
-    focus: FocusHandle,
 }
 
 fn section(title: &'static str, rows: Vec<Div>, t: &Theme) -> Div {
