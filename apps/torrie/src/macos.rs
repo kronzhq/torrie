@@ -1,8 +1,12 @@
 //! macOS integration: the menu bar item, opening at login, notifications and the default torrent app.
 
 use gpui::{App, DisplayId, Global, Pixels, Point, point, px};
-use objc2::{MainThreadMarker, rc::Retained};
-use objc2_foundation::{NSBundle, NSError, NSString};
+use objc2::{
+    MainThreadMarker, msg_send,
+    rc::Retained,
+    runtime::{AnyClass, AnyObject},
+};
+use objc2_foundation::{NSAppleEventManager, NSBundle, NSError, NSString};
 use objc2_user_notifications::{
     UNAuthorizationOptions, UNMutableNotificationContent, UNNotificationRequest,
     UNUserNotificationCenter,
@@ -10,10 +14,10 @@ use objc2_user_notifications::{
 use tokio::sync::mpsc::UnboundedSender;
 use tray_icon::{Icon, MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 
-use crate::engine::{Settings, home};
+use crate::engine::{Engine, Settings, home};
 
 const LABEL: &str = "xyz.kronz.torrie";
-/// Passed by the login item, so a launch at login can be told apart.
+/// Passed by the LaunchAgent (macOS 12).
 pub const LOGIN_ARG: &str = "--login";
 
 struct MenuBar(Option<TrayIcon>);
@@ -119,9 +123,79 @@ fn icon() -> Option<Icon> {
     Icon::from_rgba(pixmap.take(), PX, PX).ok()
 }
 
-/// A LaunchAgent that starts this binary at login. Rewritten on every apply, so it follows the app if moved.
-fn login_item(on: bool) -> std::io::Result<()> {
-    let plist = home().join(format!("Library/LaunchAgents/{LABEL}.plist"));
+/// `SMAppService.mainApp`; None before macOS 13 or when unbundled.
+fn login_service() -> Option<Retained<AnyObject>> {
+    NSBundle::mainBundle().bundleIdentifier()?;
+    let class = AnyClass::get(c"SMAppService")?;
+    // SAFETY: takes no arguments, returns an object.
+    unsafe { msg_send![class, mainAppService] }
+}
+
+/// `SMAppServiceStatusEnabled`.
+const ENABLED: isize = 1;
+
+fn login_enabled(service: &AnyObject) -> bool {
+    // SAFETY: returns an NSInteger.
+    let status: isize = unsafe { msg_send![service, status] };
+    status == ENABLED
+}
+
+/// Reads the login item state back from System Settings, migrating a LaunchAgent from older versions.
+pub fn sync_login_item(engine: &Engine) {
+    let Some(service) = login_service() else {
+        return;
+    };
+    if std::fs::remove_file(launch_agent()).is_ok() {
+        if let Err(e) = set_login(&service, true) {
+            eprintln!("Torrie: login item: {e}");
+        }
+    }
+    let on = login_enabled(&service);
+    if on != engine.settings().open_at_login {
+        engine.update_settings(|s| s.open_at_login = on);
+    }
+}
+
+fn set_login(service: &AnyObject, on: bool) -> Result<(), String> {
+    // SAFETY: both take an NSError** and return BOOL.
+    let r: Result<(), Retained<NSError>> = unsafe {
+        if on {
+            msg_send![service, registerAndReturnError: _]
+        } else {
+            msg_send![service, unregisterAndReturnError: _]
+        }
+    };
+    r.map_err(|e| e.localizedDescription().to_string())
+}
+
+/// Must be called during applicationDidFinishLaunching, while the launch event is current.
+pub fn launched_at_login() -> bool {
+    const PROP_DATA: u32 = u32::from_be_bytes(*b"prop");
+    const LOGIN_ITEM: u32 = u32::from_be_bytes(*b"lgit");
+    std::env::args().any(|a| a == LOGIN_ARG)
+        || NSAppleEventManager::sharedAppleEventManager()
+            .currentAppleEvent()
+            // SAFETY: takes an AEKeyword, returns a descriptor or nil.
+            .and_then(|e| unsafe { msg_send![&e, paramDescriptorForKeyword: PROP_DATA] })
+            .map(|d: Retained<objc2_foundation::NSAppleEventDescriptor>| d.enumCodeValue())
+            .is_some_and(|code| code == LOGIN_ITEM)
+}
+
+fn login_item(on: bool) -> Result<(), String> {
+    match login_service() {
+        Some(service) if login_enabled(&service) != on => set_login(&service, on),
+        Some(_) => Ok(()),
+        None => legacy_login_item(on).map_err(|e| e.to_string()),
+    }
+}
+
+fn launch_agent() -> std::path::PathBuf {
+    home().join(format!("Library/LaunchAgents/{LABEL}.plist"))
+}
+
+/// macOS 12 fallback. Rewritten on every apply so it follows the app if moved.
+fn legacy_login_item(on: bool) -> std::io::Result<()> {
+    let plist = launch_agent();
     if !on {
         return match std::fs::remove_file(&plist) {
             Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e),
@@ -182,6 +256,9 @@ pub fn notify(id: &str, title: &str, body: &str) {
         );
     });
 }
+
+#[link(name = "ServiceManagement", kind = "framework")]
+unsafe extern "C" {}
 
 #[link(name = "CoreServices", kind = "framework")]
 unsafe extern "C" {

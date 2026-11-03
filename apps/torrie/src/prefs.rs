@@ -146,6 +146,7 @@ impl Preferences {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
+        crate::macos::sync_login_item(&engine);
         let settings = engine.settings();
         let fields: Vec<_> = (Field::ALL.iter())
             .map(|&field| {

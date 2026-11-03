@@ -23,7 +23,7 @@ librqbit = "9.0.1"
 maxminddb = "0.32.0"
 objc2 = "0.6"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "objc2-core-foundation", "NSAccessibility", "NSAlert", "NSApplication", "NSResponder", "NSWorkspace", "NSView", "NSWindow", "NSStatusItem", "NSStatusBarButton", "NSButton", "NSControl", "NSImage"] }
-objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSString", "NSData", "NSBundle", "NSError"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSString", "NSData", "NSBundle", "NSError", "NSAppleEventManager", "NSAppleEventDescriptor"] }
 objc2-user-notifications = { version = "0.3.2", default-features = false, features = ["std", "block2", "bitflags", "UNUserNotificationCenter", "UNNotificationContent", "UNNotificationRequest", "UNNotificationTrigger"] }
 resvg = "0.45"
 serde = { version = "1", features = ["derive"] }

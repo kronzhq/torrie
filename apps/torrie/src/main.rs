@@ -252,6 +252,7 @@ fn main() {
         #[cfg(debug_assertions)]
         macos::dev_icon();
         theme::apply(&engine.settings(), cx);
+        macos::sync_login_item(&engine);
         macos::apply(&engine.settings(), cx);
         let (e, u) = (engine.clone(), urls.clone());
         cx.spawn(async move |cx| {
@@ -312,7 +313,7 @@ fn main() {
         .detach();
 
         let s = engine.settings();
-        let at_login = std::env::args().any(|a| a == macos::LOGIN_ARG);
+        let at_login = macos::launched_at_login();
         if !(at_login && s.menu_bar && s.menu_bar_mode) {
             open_main(&engine, &urls, cx);
         }
