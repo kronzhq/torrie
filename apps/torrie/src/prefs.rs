@@ -359,13 +359,6 @@ impl Preferences {
             .into_any_element()
     }
 
-    /// Direction marker next to a speed field, dimmed with it.
-    fn arrow(&self, name: &str, enabled: bool, t: &Theme) -> impl IntoElement {
-        div()
-            .when(!enabled, |d| d.opacity(0.45))
-            .child(icon(name, px(12.), t.faint))
-    }
-
     fn switch(
         &self,
         id: &'static str,
@@ -956,79 +949,83 @@ impl Render for Preferences {
             )
         };
         let bandwidth = || {
-            section(
-                "BANDWIDTH",
-                vec![
-                    row("Limit download speed", "Applies to all transfers", &t)
-                        .child(self.field(Field::Down, "kB/s", s.speed_limit_down_enabled, &t, cx))
-                        .child(
-                            self.switch("down", s.speed_limit_down_enabled, &t, cx, |s, v| {
+            let (alt, sched) = (s.alt_speed_enabled, s.alt_speed_time_enabled);
+            let days = div()
+                .flex()
+                .gap_1()
+                .when(!sched, |d| d.opacity(0.45))
+                .children(
+                    ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, day)| {
+                            let on = s.alt_speed_days & (1 << i) != 0;
+                            div()
+                                .id(("day", i))
+                                .w(px(30.))
+                                .h(px(24.))
+                                .flex()
+                                .flex_none()
+                                .items_center()
+                                .justify_center()
+                                .rounded(t.r_md())
+                                .text_size(px(11.))
+                                .font_weight(FontWeight::MEDIUM)
+                                .when(on, |d| d.bg(t.accent).text_color(t.on_accent()))
+                                .when(!on, |d| {
+                                    d.bg(t.elevated)
+                                        .text_color(t.muted)
+                                        .hover(|d| d.text_color(t.text))
+                                })
+                                .child(day)
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    this.update(cx, |s| s.alt_speed_days ^= 1 << i)
+                                }))
+                        }),
+                );
+            vec![
+                section(
+                    "SPEED LIMITS",
+                    vec![
+                        row("Download", "", &t)
+                            .child(self.field(Field::Down, "kB/s", s.speed_limit_down_enabled, &t, cx))
+                            .child(self.switch("down", s.speed_limit_down_enabled, &t, cx, |s, v| {
                                 s.speed_limit_down_enabled = v
-                            }),
-                        ),
-                    row("Limit upload speed", "Applies to all transfers", &t)
-                        .child(self.field(Field::Up, "kB/s", s.speed_limit_up_enabled, &t, cx))
-                        .child(self.switch("up", s.speed_limit_up_enabled, &t, cx, |s, v| {
-                            s.speed_limit_up_enabled = v
-                        })),
-                    row(
-                        "Alternative limits",
-                        "Replace the limits above while on; also the gauge in the sidebar",
-                        &t,
-                    )
-                    .child(self.arrow("arrow-down", s.alt_speed_enabled, &t))
-                    .child(self.field(Field::AltDown, "kB/s", s.alt_speed_enabled, &t, cx))
-                    .child(self.arrow("arrow-up", s.alt_speed_enabled, &t))
-                    .child(self.field(Field::AltUp, "kB/s", s.alt_speed_enabled, &t, cx))
-                    .child(self.switch(
-                        "alt",
-                        s.alt_speed_enabled,
-                        &t,
-                        cx,
-                        |s, v| s.alt_speed_enabled = v,
-                    )),
-                    row(
-                        "Schedule alternative limits",
-                        "On from the first time, off at the second",
-                        &t,
-                    )
-                    .child(self.field(Field::AltBegin, "", s.alt_speed_time_enabled, &t, cx))
-                    .child(self.field(Field::AltEnd, "", s.alt_speed_time_enabled, &t, cx))
-                    .child(self.switch(
-                        "alt-time",
-                        s.alt_speed_time_enabled,
-                        &t,
-                        cx,
-                        |s, v| s.alt_speed_time_enabled = v,
-                    )),
-                    row("On these days", "", &t).children(
-                        ["S", "M", "T", "W", "T", "F", "S"]
-                            .into_iter()
-                            .enumerate()
-                            .map(|(i, day)| {
-                                let on = s.alt_speed_days & (1 << i) != 0;
-                                div()
-                                    .id(("day", i))
-                                    .size(px(26.))
-                                    .flex()
-                                    .flex_none()
-                                    .items_center()
-                                    .justify_center()
-                                    .rounded_full()
-                                    .text_size(px(11.))
-                                    .font_weight(FontWeight::MEDIUM)
-                                    .bg(if on { t.accent } else { t.elevated })
-                                    .text_color(if on { t.on_accent() } else { t.muted })
-                                    .when(!s.alt_speed_time_enabled, |d| d.opacity(0.45))
-                                    .child(day)
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        this.update(cx, |s| s.alt_speed_days ^= 1 << i)
-                                    }))
-                            }),
-                    ),
-                ],
-                &t,
-            )
+                            })),
+                        row("Upload", "", &t)
+                            .child(self.field(Field::Up, "kB/s", s.speed_limit_up_enabled, &t, cx))
+                            .child(self.switch("up", s.speed_limit_up_enabled, &t, cx, |s, v| {
+                                s.speed_limit_up_enabled = v
+                            })),
+                    ],
+                    &t,
+                ),
+                section(
+                    "ALTERNATIVE LIMITS",
+                    vec![
+                        row(
+                            "Use alternative limits",
+                            "Replace the limits above while on; the gauge in the sidebar switches them too",
+                            &t,
+                        )
+                        .child(self.switch("alt", alt, &t, cx, |s, v| s.alt_speed_enabled = v)),
+                        row("Download", "", &t).child(self.field(Field::AltDown, "kB/s", alt, &t, cx)).child(no_switch()),
+                        row("Upload", "", &t).child(self.field(Field::AltUp, "kB/s", alt, &t, cx)).child(no_switch()),
+                    ],
+                    &t,
+                ),
+                section(
+                    "SCHEDULE",
+                    vec![
+                        row("Turn on alternative limits automatically", "Between these times on the chosen days", &t)
+                            .child(self.switch("alt-time", sched, &t, cx, |s, v| s.alt_speed_time_enabled = v)),
+                        row("From", "", &t).child(self.field(Field::AltBegin, "", sched, &t, cx)).child(no_switch()),
+                        row("To", "", &t).child(self.field(Field::AltEnd, "", sched, &t, cx)).child(no_switch()),
+                        row("Days", "", &t).child(days).child(no_switch()),
+                    ],
+                    &t,
+                ),
+            ]
         };
         let seeding = || {
             section(
@@ -1163,7 +1160,7 @@ impl Render for Preferences {
         let body = match self.tab {
             0 => vec![general(), transfers(), seeding()],
             1 => vec![self.appearance(&t, cx)],
-            2 => vec![bandwidth()],
+            2 => bandwidth(),
             3 => vec![network()],
             _ => vec![self.plugins(&t, cx)],
         };
@@ -1299,6 +1296,7 @@ fn lan_ip() -> Option<String> {
 }
 
 fn row(label: impl Into<SharedString>, detail: impl Into<SharedString>, t: &Theme) -> Div {
+    let detail = detail.into();
     div().flex().items_center().gap_4().px_4().py_3().child(
         div()
             .flex_1()
@@ -1307,14 +1305,21 @@ fn row(label: impl Into<SharedString>, detail: impl Into<SharedString>, t: &Them
             .flex_col()
             .gap(px(3.))
             .child(div().text_size(px(13.)).child(label.into()))
-            .child(
-                div()
-                    .text_size(px(11.5))
-                    .line_height(px(15.))
-                    .text_color(t.muted)
-                    .child(detail.into()),
-            ),
+            .when(!detail.is_empty(), |d| {
+                d.child(
+                    div()
+                        .text_size(px(11.5))
+                        .line_height(px(15.))
+                        .text_color(t.muted)
+                        .child(detail),
+                )
+            }),
     )
+}
+
+/// Holds the switch column in a row without one, so its control lines up with the rows that have one.
+fn no_switch() -> Div {
+    div().w(px(34.)).flex_none()
 }
 
 /// A selectable theme: a miniature of the main window above its name.
