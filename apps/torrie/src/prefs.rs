@@ -937,13 +937,17 @@ impl Render for Preferences {
                         "Shows a notification for each finished download",
                         &t,
                     )
-                    .child(self.switch(
-                        "notify-done",
-                        s.notify_done,
-                        &t,
-                        cx,
-                        |s, v| s.notify_done = v,
-                    )),
+                    .child({
+                        let on = s.notify_done;
+                        toggle("notify-done", on, &t).on_click(cx.listener(
+                            move |this, _, _, cx| {
+                                this.update(cx, |s| s.notify_done = !on);
+                                if !on {
+                                    crate::macos::ensure_notifications();
+                                }
+                            },
+                        ))
+                    }),
                 ],
                 &t,
             )

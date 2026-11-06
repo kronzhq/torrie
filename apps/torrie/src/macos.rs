@@ -172,18 +172,41 @@ fn set_login(service: &AnyObject, on: bool) -> Result<(), String> {
 pub fn launched_at_login() -> bool {
     const PROP_DATA: u32 = u32::from_be_bytes(*b"prop");
     const LOGIN_ITEM: u32 = u32::from_be_bytes(*b"lgit");
-    std::env::args().any(|a| a == LOGIN_ARG)
-        || NSAppleEventManager::sharedAppleEventManager()
-            .currentAppleEvent()
-            // SAFETY: takes an AEKeyword, returns a descriptor or nil.
-            .and_then(|e| unsafe { msg_send![&e, paramDescriptorForKeyword: PROP_DATA] })
-            .map(|d: Retained<objc2_foundation::NSAppleEventDescriptor>| d.enumCodeValue())
-            .is_some_and(|code| code == LOGIN_ITEM)
+    if std::env::args().any(|a| a == LOGIN_ARG) {
+        return true;
+    }
+    let Some(event) = NSAppleEventManager::sharedAppleEventManager().currentAppleEvent() else {
+        // Reports differ on whether an SMAppService login launch carries the login item marker or no launch
+        // event at all. Finder, the Dock and `open` always send one, so none while registered means login.
+        return login_service().is_some_and(|s| login_enabled(&s));
+    };
+    // SAFETY: takes an AEKeyword, returns a descriptor or nil.
+    let prop: Option<Retained<objc2_foundation::NSAppleEventDescriptor>> =
+        unsafe { msg_send![&event, paramDescriptorForKeyword: PROP_DATA] };
+    prop.is_some_and(|d| d.enumCodeValue() == LOGIN_ITEM)
 }
 
+/// `SMAppServiceStatusRequiresApproval`: turned off in System Settings, which only the person can undo there.
+const REQUIRES_APPROVAL: isize = 2;
+
 fn login_item(on: bool) -> Result<(), String> {
+    static ASKED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
     match login_service() {
-        Some(service) if login_enabled(&service) != on => set_login(&service, on),
+        Some(service) if login_enabled(&service) != on => {
+            set_login(&service, on)?;
+            // SAFETY: returns an NSInteger.
+            let status: isize = unsafe { msg_send![&*service, status] };
+            // Once per run: apply runs on every settings change.
+            if on
+                && status == REQUIRES_APPROVAL
+                && !ASKED.swap(true, std::sync::atomic::Ordering::Relaxed)
+            {
+                let class = AnyClass::get(c"SMAppService").expect("login_service found it");
+                // SAFETY: class method, no arguments, no return value.
+                let () = unsafe { msg_send![class, openSystemSettingsLoginItems] };
+            }
+            Ok(())
+        }
         Some(_) => Ok(()),
         None => legacy_login_item(on).map_err(|e| e.to_string()),
     }
@@ -255,6 +278,36 @@ pub fn notify(id: &str, title: &str, body: &str) {
             &post,
         );
     });
+}
+
+/// For a switch that turns notifications on: asks the first time; if they're already turned off for Torrie in
+/// System Settings, where asking again does nothing, opens that page.
+pub fn ensure_notifications() {
+    let Some(id) = NSBundle::mainBundle().bundleIdentifier() else {
+        return;
+    };
+    let id = id.to_string();
+    let check = block2::RcBlock::new(
+        move |s: std::ptr::NonNull<objc2_user_notifications::UNNotificationSettings>| {
+            // SAFETY: the settings are valid for the duration of the call.
+            if unsafe { s.as_ref() }.authorizationStatus()
+                == objc2_user_notifications::UNAuthorizationStatus::Denied
+            {
+                _ = std::process::Command::new("/usr/bin/open")
+                .arg(format!("x-apple.systempreferences:com.apple.Notifications-Settings.extension?id={id}"))
+                .spawn();
+            } else {
+                let ok = block2::RcBlock::new(|_: objc2::runtime::Bool, _: *mut NSError| {});
+                UNUserNotificationCenter::currentNotificationCenter()
+                    .requestAuthorizationWithOptions_completionHandler(
+                        UNAuthorizationOptions::Alert,
+                        &ok,
+                    );
+            }
+        },
+    );
+    UNUserNotificationCenter::currentNotificationCenter()
+        .getNotificationSettingsWithCompletionHandler(&check);
 }
 
 #[link(name = "ServiceManagement", kind = "framework")]
