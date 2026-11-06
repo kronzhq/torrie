@@ -141,7 +141,11 @@ fn login_enabled(service: &AnyObject) -> bool {
 }
 
 /// Reads the login item state back from System Settings, migrating a LaunchAgent from older versions.
+/// Also keeps macOS's "Reopen windows when logging back in" from starting Torrie: only the login item should.
 pub fn sync_login_item(engine: &Engine) {
+    if let Some(mtm) = MainThreadMarker::new() {
+        objc2_app_kit::NSApplication::sharedApplication(mtm).disableRelaunchOnLogin();
+    }
     let Some(service) = login_service() else {
         return;
     };
