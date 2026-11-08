@@ -77,7 +77,7 @@ pub struct Settings {
     /// A menu bar item; also keeps Torrie running after its window closes.
     pub menu_bar: bool,
     pub open_at_login: bool,
-    /// Opening at login starts in the menu bar, without the window.
+    /// Every start (login, Finder, update) opens in the menu bar only, without the window.
     pub menu_bar_mode: bool,
     /// Alternative speed limits: replace the limits above while on.
     pub alt_speed_enabled: bool,

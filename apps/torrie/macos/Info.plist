@@ -28,6 +28,9 @@
 	<string>__VERSION__</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>12.0</string>
+	<!-- No Dock icon until a window opens (macos::dock) -->
+	<key>LSUIElement</key>
+	<true/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>NSHighResolutionCapable</key>

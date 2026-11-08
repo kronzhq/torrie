@@ -6,7 +6,7 @@ use objc2::{
     rc::Retained,
     runtime::{AnyClass, AnyObject},
 };
-use objc2_foundation::{NSAppleEventManager, NSBundle, NSError, NSString};
+use objc2_foundation::{NSBundle, NSError, NSString, NSURL};
 use objc2_user_notifications::{
     UNAuthorizationOptions, UNMutableNotificationContent, UNNotificationRequest,
     UNUserNotificationCenter,
@@ -17,8 +17,6 @@ use tray_icon::{Icon, MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, 
 use crate::engine::{Engine, Settings, home};
 
 const LABEL: &str = "xyz.kronz.torrie";
-/// Passed by the LaunchAgent (macOS 12).
-pub const LOGIN_ARG: &str = "--login";
 
 struct MenuBar(Option<TrayIcon>);
 
@@ -140,24 +138,54 @@ fn login_enabled(service: &AnyObject) -> bool {
     status == ENABLED
 }
 
-/// Reads the login item state back from System Settings, migrating a LaunchAgent from older versions.
-/// Also keeps macOS's "Reopen windows when logging back in" from starting Torrie: only the login item should.
-pub fn sync_login_item(engine: &Engine) {
+/// Dock icon only while the main window is open.
+pub fn dock(show: bool) {
+    use objc2_app_kit::{NSApplication, NSApplicationActivationPolicy};
+    if let Some(mtm) = MainThreadMarker::new() {
+        NSApplication::sharedApplication(mtm).setActivationPolicy(if show {
+            NSApplicationActivationPolicy::Regular
+        } else {
+            NSApplicationActivationPolicy::Accessory
+        });
+    }
+}
+
+/// Hides the Dock icon, opts out of "Reopen windows when logging back in" and moves an old LaunchAgent over.
+pub fn start(engine: &Engine) {
+    dock(false);
     if let Some(mtm) = MainThreadMarker::new() {
         objc2_app_kit::NSApplication::sharedApplication(mtm).disableRelaunchOnLogin();
     }
     let Some(service) = login_service() else {
         return;
     };
-    if std::fs::remove_file(launch_agent()).is_ok() {
-        if let Err(e) = set_login(&service, true) {
+    let agent = launch_agent();
+    if agent.exists() {
+        // Turned off under Allow in the Background: keep it off rather than re-adding it as a login item.
+        let url = NSURL::fileURLWithPath(&NSString::from_str(&agent.to_string_lossy()));
+        let class = AnyClass::get(c"SMAppService").expect("login_service found it");
+        // SAFETY: class method taking an NSURL, returns an NSInteger.
+        let status: isize = unsafe { msg_send![class, statusForLegacyPlistAtURL: &*url] };
+        _ = std::fs::remove_file(&agent);
+        if status != REQUIRES_APPROVAL
+            && let Err(e) = set_login(&service, true)
+        {
             eprintln!("Torrie: login item: {e}");
         }
     }
-    let on = login_enabled(&service);
-    if on != engine.settings().open_at_login {
+    sync_login_item(engine);
+}
+
+/// Reads the login item state back from System Settings; true if it changed there.
+pub fn sync_login_item(engine: &Engine) -> bool {
+    let Some(on) = login_service().map(|s| login_enabled(&s)) else {
+        return false;
+    };
+    let changed = on != engine.settings().open_at_login;
+    if changed {
         engine.update_settings(|s| s.open_at_login = on);
     }
+    changed
 }
 
 fn set_login(service: &AnyObject, on: bool) -> Result<(), String> {
@@ -170,24 +198,6 @@ fn set_login(service: &AnyObject, on: bool) -> Result<(), String> {
         }
     };
     r.map_err(|e| e.localizedDescription().to_string())
-}
-
-/// Must be called during applicationDidFinishLaunching, while the launch event is current.
-pub fn launched_at_login() -> bool {
-    const PROP_DATA: u32 = u32::from_be_bytes(*b"prop");
-    const LOGIN_ITEM: u32 = u32::from_be_bytes(*b"lgit");
-    if std::env::args().any(|a| a == LOGIN_ARG) {
-        return true;
-    }
-    let Some(event) = NSAppleEventManager::sharedAppleEventManager().currentAppleEvent() else {
-        // Reports differ on whether an SMAppService login launch carries the login item marker or no launch
-        // event at all. Finder, the Dock and `open` always send one, so none while registered means login.
-        return login_service().is_some_and(|s| login_enabled(&s));
-    };
-    // SAFETY: takes an AEKeyword, returns a descriptor or nil.
-    let prop: Option<Retained<objc2_foundation::NSAppleEventDescriptor>> =
-        unsafe { msg_send![&event, paramDescriptorForKeyword: PROP_DATA] };
-    prop.is_some_and(|d| d.enumCodeValue() == LOGIN_ITEM)
 }
 
 /// `SMAppServiceStatusRequiresApproval`: turned off in System Settings, which only the person can undo there.
@@ -220,7 +230,7 @@ fn launch_agent() -> std::path::PathBuf {
     home().join(format!("Library/LaunchAgents/{LABEL}.plist"))
 }
 
-/// macOS 12 fallback. Rewritten on every apply so it follows the app if moved.
+/// macOS 12 fallback. Written only when it changes: each write posts "Background Items Added".
 fn legacy_login_item(on: bool) -> std::io::Result<()> {
     let plist = launch_agent();
     if !on {
@@ -233,25 +243,26 @@ fn legacy_login_item(on: bool) -> std::io::Result<()> {
         .to_string_lossy()
         .replace('&', "&amp;")
         .replace('<', "&lt;");
-    std::fs::create_dir_all(plist.parent().unwrap())?;
-    std::fs::write(
-        &plist,
-        format!(
-            r#"<?xml version="1.0" encoding="UTF-8"?>
+    let text = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
 	<key>Label</key>
 	<string>{LABEL}</string>
 	<key>ProgramArguments</key>
-	<array><string>{exe}</string><string>{LOGIN_ARG}</string></array>
+	<array><string>{exe}</string></array>
 	<key>RunAtLoad</key>
 	<true/>
 </dict>
 </plist>
 "#
-        ),
-    )
+    );
+    if std::fs::read_to_string(&plist).is_ok_and(|t| t == text) {
+        return Ok(());
+    }
+    std::fs::create_dir_all(plist.parent().unwrap())?;
+    std::fs::write(&plist, text)
 }
 
 /// Posts a notification as Torrie; `id` replaces an earlier one with the same id. Asks permission the first time

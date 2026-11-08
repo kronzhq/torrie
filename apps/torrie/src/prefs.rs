@@ -1,6 +1,6 @@
 //! Settings window. Every change is applied and saved immediately.
 
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use gpui::{
     AnyElement, ClipboardItem, Context, Div, Entity, EntityId, FontWeight, Hsla, KeyDownEvent,
@@ -147,6 +147,22 @@ impl Preferences {
         cx: &mut Context<Self>,
     ) -> Self {
         crate::macos::sync_login_item(&engine);
+        // Picks up changes made in System Settings.
+        cx.spawn(async move |this, cx| {
+            loop {
+                cx.background_executor().timer(Duration::from_secs(1)).await;
+                let sync = |this: &mut Self, cx: &mut Context<Self>| {
+                    if crate::macos::sync_login_item(&this.engine) {
+                        this.settings = this.engine.settings();
+                        cx.notify();
+                    }
+                };
+                if this.update(cx, sync).is_err() {
+                    break;
+                }
+            }
+        })
+        .detach();
         let settings = engine.settings();
         let fields: Vec<_> = (Field::ALL.iter())
             .map(|&field| {
@@ -807,8 +823,8 @@ impl Render for Preferences {
                             |s, v| s.open_at_login = v,
                         )),
                         row(
-                            "Menu bar mode",
-                            "When opened at login, starts in the menu bar without its window",
+                            "Start in the menu bar only",
+                            "Opens without its window, from login or Finder",
                             &t,
                         )
                         .child(self.switch(

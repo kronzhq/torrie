@@ -196,6 +196,7 @@ fn quit(engine: &Arc<Engine>, urls: &Rc<mpsc::Receiver<String>>, cx: &mut App) {
 
 /// Brings the main window forward, reopening it if it was closed.
 fn open_main(engine: &Arc<Engine>, urls: &Rc<mpsc::Receiver<String>>, cx: &mut App) {
+    macos::dock(true);
     cx.activate(true);
     if let Some(w) = cx
         .windows()
@@ -252,7 +253,7 @@ fn main() {
         #[cfg(debug_assertions)]
         macos::dev_icon();
         theme::apply(&engine.settings(), cx);
-        macos::sync_login_item(&engine);
+        macos::start(&engine);
         macos::apply(&engine.settings(), cx);
         let (e, u) = (engine.clone(), urls.clone());
         cx.spawn(async move |cx| {
@@ -298,23 +299,26 @@ fn main() {
             async {}
         })
         .detach();
-        // Closing the main window quits, like a single-window utility, unless the menu bar item keeps it running.
+        // Closing the main window quits, unless the menu bar item keeps Torrie running (then the Dock icon goes).
         let e = engine.clone();
         cx.on_window_closed(move |cx| {
-            if !e.settings().menu_bar
-                && !cx
-                    .windows()
-                    .iter()
-                    .any(|w| w.downcast::<MainWindow>().is_some())
+            if !cx
+                .windows()
+                .iter()
+                .any(|w| w.downcast::<MainWindow>().is_some())
             {
-                cx.quit();
+                if e.settings().menu_bar {
+                    macos::dock(false);
+                } else {
+                    cx.quit();
+                }
             }
         })
         .detach();
 
+        // Every start, login included: a login launch can't be told apart.
         let s = engine.settings();
-        let at_login = macos::launched_at_login();
-        if !(at_login && s.menu_bar && s.menu_bar_mode) {
+        if !(s.menu_bar && s.menu_bar_mode) {
             open_main(&engine, &urls, cx);
         }
         update::watch(&engine, cx);
