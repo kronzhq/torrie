@@ -15,6 +15,10 @@
 </p>
 
 <p align="center">
+  <a href="https://www.opensourcealternatives.to"><img src="https://www.opensourcealternatives.to/badge-osa.svg" alt="As seen on Open Source Alternatives"></a>
+</p>
+
+<p align="center">
   <img src="site/screenshots/main.png" alt="Torrie downloading a torrent with the Inspector open">
 </p>
 
